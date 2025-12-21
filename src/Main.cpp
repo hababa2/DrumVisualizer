@@ -13,9 +13,10 @@ void callback(double deltatime, std::vector<unsigned char>* message, void* userD
 
 int main()
 {
-	RtMidiIn* midi = new RtMidiIn(RtMidi::UNSPECIFIED, "example");
+	RtMidiIn* midi = new RtMidiIn();
 
     midi->setCallback(callback, nullptr);
+    midi->openPort(0, "Midi");
     midi->ignoreTypes(false, false, false);
 
     std::cout << "\nReading MIDI input ... press <enter> to quit.\n";
