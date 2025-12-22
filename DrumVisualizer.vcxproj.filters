@@ -16,21 +16,45 @@
     <Filter Include="Lib">
       <UniqueIdentifier>{993aeec6-fbbe-4fa9-9b19-1eefd40e0f94}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Lib\rtmidi">
+      <UniqueIdentifier>{e68d0a63-37cb-45b3-92ae-4a41ba1ef890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lib\glfw">
+      <UniqueIdentifier>{a63c8b6f-19fa-43f4-b4d4-6d930048b5d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lib\glad">
+      <UniqueIdentifier>{1357834a-6d16-46ab-9a05-639d831a177a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="lib\RtMidi.cpp">
-      <Filter>Lib</Filter>
+    <ClCompile Include="lib\include\rtmidi\RtMidi.cpp">
+      <Filter>Lib\rtmidi</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\include\glad\glad.c">
+      <Filter>Lib\glad</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Defines.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="lib\RtMidi.h">
-      <Filter>Lib</Filter>
+    <ClInclude Include="lib\include\rtmidi\RtMidi.h">
+      <Filter>Lib\rtmidi</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\glfw\glfw3.h">
+      <Filter>Lib\glfw</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\glfw\glfw3native.h">
+      <Filter>Lib\glfw</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\KHR\khrplatform.h">
+      <Filter>Lib\glad</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\glad\glad.h">
+      <Filter>Lib\glad</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
