@@ -22,8 +22,8 @@ struct WindowConfig
 
 struct Window
 {
-	Window(WindowConfig config = {});
-	~Window();
+	void Create(WindowConfig config = {});
+	void Destroy();
 
 	void Update();
 	void Render();

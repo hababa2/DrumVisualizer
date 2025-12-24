@@ -3,8 +3,14 @@
 #include "glad\glad.h"
 #include "glfw\glfw3.h"
 
-Buffer::Buffer(U32 location, DataType type, void* data, U32 size, bool instance) : location(location), type(type), data(data), size(size), instance(instance)
+void Buffer::Create(U32 location, DataType type, void* data, U32 size, bool instance)
 {
+	this->location = location;
+	this->type = type;
+	this->data = data;
+	this->size = size;
+	this->instance = instance;
+
 	glGenBuffers(1, &id);
 	glBindBuffer(GL_ARRAY_BUFFER, id);
 	glBufferData(GL_ARRAY_BUFFER, size, data, instance ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
@@ -22,7 +28,7 @@ Buffer::Buffer(U32 location, DataType type, void* data, U32 size, bool instance)
 	glVertexAttribDivisor(location, instance);
 }
 
-Buffer::~Buffer()
+void Buffer::Destroy()
 {
 	glDeleteBuffers(1, &id);
 }

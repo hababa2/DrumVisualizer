@@ -3,7 +3,7 @@
 #include "glad\glad.h"
 #include "glfw\glfw3.h"
 
-Window::Window(WindowConfig config)
+void Window::Create(WindowConfig config)
 {
 	this->config = config;
 
@@ -21,7 +21,7 @@ Window::Window(WindowConfig config)
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 }
 
-Window::~Window()
+void Window::Destroy()
 {
 	glfwDestroyWindow(window);
 }
