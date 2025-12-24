@@ -140,6 +140,8 @@ struct Vector2
 struct Vector3
 {
 	F32 x, y, z;
+
+	const Vector3& operator*(F32 f) const { return { x * f, y * f, z * f }; }
 };
 
 struct Vector4

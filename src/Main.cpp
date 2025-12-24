@@ -10,10 +10,68 @@
 #define RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
 #include "rtmidi\RtMidi.h"
 
-Window* settings;
+#include <fstream>
+
+Window* settingsWindow;
 Window* visualizer;
 GLFWmonitor* monitor = nullptr;
 bool configure = false;
+
+enum class ScrollDirection
+{
+	Up,
+	Down,
+	Left,
+	Right
+};
+
+enum class NoteType
+{
+	Snare,
+	Tom1,
+	Tom2,
+	Tom3,
+	Cymbal1,
+	Cymbal2,
+	Cymbal3,
+	Kick
+};
+
+struct Mapping
+{
+	NoteType type;
+	I32 midiValue;
+	I32 velocity;
+	I32 overhitThreshold;
+	F64 lastHit;
+};
+
+struct Settings
+{
+	I32 settingWindowX{ 100 };
+	I32 settingWindowY{ 100 };
+	I32 settingWindowWidth{ 600 };
+	I32 settingWindowHeight{ 800 };
+
+	I32 visualizerWindowX{ 700 };
+	I32 visualizerWindowY{ 100 };
+	I32 visualizerWindowWidth{ 600 };
+	I32 visualizerWindowHeight{ 800 };
+
+	F32 dynamicThreshold{ 60 };
+
+	ScrollDirection scrollDirection{ ScrollDirection::Down };
+	Vector3 snareColor = { 1.0f, 0.0f, 0.0f };
+	Vector3 tom1Color = { 1.0f, 1.0f, 0.0f };
+	Vector3 tom2Color = { 0.0f, 0.0f, 1.0f };
+	Vector3 tom3Color = { 0.0f, 1.0f, 0.0f };
+	Vector3 cymbal1Color = { 1.0f, 1.0f, 0.0f };
+	Vector3 cymbal2Color = { 0.0f, 0.0f, 1.0f };
+	Vector3 cymbal3Color = { 0.0f, 1.0f, 0.0f };
+	Vector3 kickColor = { 1.0f, 0.65f, 0.0f };
+} settings;
+
+std::vector<Mapping> mappings;
 
 Vector2 positions[] = {
 	{  0.05f,  0.05f },
@@ -25,18 +83,13 @@ Vector2 positions[] = {
 std::vector<Vector2> offsets;
 std::vector<Vector3> colors;
 
-const Vector3 RED = { 1.0f, 0.0f, 0.0f };
-const Vector3 YELLOW = { 1.0f, 1.0f, 0.0f };
-const Vector3 BLUE = { 0.0f, 0.0f, 1.0f };
-const Vector3 GREEN = { 0.0f, 1.0f, 0.0f };
-const Vector3 ORANGE = { 1.0f, 0.65f, 0.0f };
-
 U32 indices[] = {
 	0, 1, 3,
 	1, 2, 3
 };
 
-const char* vertexShaderSource = "#version 460 core\n"
+const char* vertexShaderSource =
+"#version 460 core\n"
 "layout (location = 0) in vec2 position;\n"
 "layout (location = 1) in vec2 offset;\n"
 "layout (location = 2) in vec3 color;\n"
@@ -47,12 +100,13 @@ const char* vertexShaderSource = "#version 460 core\n"
 "   fragColor = color;\n"
 "}\0";
 
-const char* fragmentShaderSource = "#version 460 core\n"
+const char* fragmentShaderSource =
+"#version 460 core\n"
 "out vec4 FragColor;\n"
 "in vec3 fragColor;\n"
 "void main()\n"
 "{\n"
-"   FragColor = vec4(fragColor, 1.0f);\n"
+"   FragColor = vec4(fragColor, 1.0);\n"
 "}\0";
 
 static void error(int error, const char* description)
@@ -60,24 +114,35 @@ static void error(int error, const char* description)
 	fputs(description, stderr);
 }
 
-void callback(double deltatime, std::vector<unsigned char>* message, void* userData)
+void callback(double deltatime, std::vector<U8>* message, void* userData)
 {
-	U32 nBytes = message->size();
-	for (U32 i = 0; i < nBytes; i++) { std::cout << "Byte " << i << " = " << (int)message->at(i) << ", "; }
-	if (nBytes > 0) { std::cout << "stamp = " << deltatime << std::endl; }
-
 	if (message->at(0) == 144)
 	{
-		switch (message->at(1))
+		//Debug message
+		U32 nBytes = message->size();
+		for (U32 i = 0; i < nBytes; i++) { std::cout << "Byte " << i << " = " << (int)message->at(i) << ", "; }
+		if (nBytes > 0) { std::cout << "stamp = " << deltatime << std::endl; }
+
+		for (Mapping& mapping : mappings)
 		{
-		case 44: { offsets.push_back({ -0.2f, 1.0f }); colors.push_back(RED);    } break;
-		case 45: { offsets.push_back({ -0.1f, 1.0f }); colors.push_back(YELLOW); } break;
-		case 46: { offsets.push_back({  0.0f, 1.0f }); colors.push_back(BLUE);   } break;
-		case 47: { offsets.push_back({  0.1f, 1.0f }); colors.push_back(GREEN);  } break;
-		case 48: { offsets.push_back({ -0.1f, 1.0f }); colors.push_back(YELLOW); } break;
-		case 49: { offsets.push_back({  0.0f, 1.0f }); colors.push_back(BLUE);   } break;
-		case 50: { offsets.push_back({  0.1f, 1.0f }); colors.push_back(GREEN);  } break;
-		case 51: { offsets.push_back({  0.2f, 1.0f }); colors.push_back(ORANGE); } break;
+			if (message->at(1) == mapping.midiValue) //TODO: check overhit threshold
+			{
+				F32 dynamic = message->at(2) < settings.dynamicThreshold ? 0.5f : 1.0f;
+
+				switch (mapping.type)
+				{
+				case NoteType::Snare: { offsets.push_back({ -0.2f, 1.0f }); colors.push_back(settings.snareColor * dynamic); } break;
+				case NoteType::Tom1: { offsets.push_back({ -0.1f, 1.0f }); colors.push_back(settings.tom1Color * dynamic); } break;
+				case NoteType::Tom2: { offsets.push_back({ 0.0f, 1.0f }); colors.push_back(settings.tom2Color * dynamic); } break;
+				case NoteType::Tom3: { offsets.push_back({ 0.1f, 1.0f }); colors.push_back(settings.tom3Color * dynamic); } break;
+				case NoteType::Cymbal1: { offsets.push_back({ -0.1f, 1.0f }); colors.push_back(settings.cymbal1Color * dynamic); } break;
+				case NoteType::Cymbal2: { offsets.push_back({ 0.0f, 1.0f }); colors.push_back(settings.cymbal2Color * dynamic); } break;
+				case NoteType::Cymbal3: { offsets.push_back({ 0.1f, 1.0f }); colors.push_back(settings.cymbal3Color * dynamic); } break;
+				case NoteType::Kick: { offsets.push_back({ 0.2f, 1.0f }); colors.push_back(settings.kickColor * dynamic); } break;
+				}
+
+				break;
+			}
 		}
 	}
 }
@@ -120,11 +185,22 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
+	std::ifstream configFile("settings.cfg", std::ios::binary);
+
+	//if (configFile.is_open())
+	//{
+	//	configFile.read((char*)&settings, sizeof(Settings));
+	//}
+
 	WindowConfig config{};
 	config.name = "Drum Visualizer Settings";
+	config.x = settings.settingWindowX;
+	config.y = settings.settingWindowY;
+	config.width = settings.settingWindowWidth;
+	config.height = settings.settingWindowHeight;
 
-	settings = new Window(config);
-	glfwSetKeyCallback(*settings, keyCallback);
+	settingsWindow = new Window(config);
+	glfwSetKeyCallback(*settingsWindow, keyCallback);
 
 	config.name = "Drum Visualizer";
 	config.transparent = true;
@@ -132,6 +208,10 @@ int main()
 	config.interactable = false;
 	config.menu = false;
 	config.clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+	config.x = settings.visualizerWindowX;
+	config.y = settings.visualizerWindowY;
+	config.width = settings.visualizerWindowWidth;
+	config.height = settings.visualizerWindowHeight;
 
 	visualizer = new Window(config);
 	glfwSetKeyCallback(*visualizer, keyCallback);
@@ -169,14 +249,27 @@ int main()
 
 	RtMidiIn* midi = new RtMidiIn();
 
+	mappings.push_back({ NoteType::Snare, 44, 10, 0, 0.0f });
+	mappings.push_back({ NoteType::Tom1, 45, 10, 0, 0.0f });
+	mappings.push_back({ NoteType::Tom2, 46, 10, 0, 0.0f });
+	mappings.push_back({ NoteType::Tom3, 47, 10, 0, 0.0f });
+	mappings.push_back({ NoteType::Cymbal1, 48, 10, 0, 0.0f });
+	mappings.push_back({ NoteType::Cymbal2, 49, 10, 0, 0.0f });
+	mappings.push_back({ NoteType::Cymbal3, 50, 10, 0, 0.0f });
+	mappings.push_back({ NoteType::Kick, 51, 10, 0, 0.0f });
+
+	std::string name = midi->getPortName(0);
+	name = name.substr(0, name.size() - 2);
 	midi->setCallback(callback, nullptr);
-	midi->openPort(0, "Midi");
+	midi->openPort(0, name);
 	midi->ignoreTypes(false, false, false);
+
+	//TODO: load Documents\Clone Hero\MIDI Profiles\[name].yaml for midi config
 
 	F32 previousTime = glfwGetTime();
 	F32 deltaTime = 0.0f;
 
-	while (!glfwWindowShouldClose(*settings))
+	while (!glfwWindowShouldClose(*settingsWindow))
 	{
 		deltaTime = glfwGetTime() - previousTime;
 		previousTime = glfwGetTime();
@@ -189,8 +282,8 @@ int main()
 		offsetsBuffer.Flush(offsets.data(), offsets.capacity() * sizeof(Vector2));
 		colorsBuffer.Flush(colors.data(), colors.capacity() * sizeof(Vector3));
 
-		settings->Update();
-		settings->Render();
+		settingsWindow->Update();
+		settingsWindow->Render();
 
 		visualizer->Update();
 
@@ -206,7 +299,7 @@ int main()
 
 	delete midi;
 
-	delete settings;
+	delete settingsWindow;
 	delete visualizer;
 	glDeleteVertexArrays(1, &vao);
 	glfwTerminate();
