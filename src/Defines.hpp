@@ -119,3 +119,30 @@ static inline constexpr double F64_MIN = 2.2250738585072014e-308;			//Minimum va
 #	define BreakPoint
 #	define ASSERT(expr) expr;
 #endif
+
+/// <summary>
+/// Gets the element count of a static array
+/// </summary>
+/// <returns>The count of elements</returns>
+template<class Type, U64 Count> constexpr U64 CountOf(Type(&)[Count]) { return Count; }
+
+/// <summary>
+/// Gets the element count of a static array
+/// </summary>
+/// <returns>The count of elements</returns>
+template<class Type, U32 Count> constexpr U32 CountOf32(Type(&)[Count]) { return Count; }
+
+struct Vector2
+{
+	F32 x, y;
+};
+
+struct Vector3
+{
+	F32 x, y, z;
+};
+
+struct Vector4
+{
+	F32 x, y, z, w;
+};

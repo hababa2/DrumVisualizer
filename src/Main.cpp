@@ -1,5 +1,8 @@
 #include "Defines.hpp"
 
+#include "Window.hpp"
+#include "Buffer.hpp"
+
 #include "glad\glad.h"
 #include "glfw\glfw3.h"
 
@@ -7,110 +10,162 @@
 #define RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
 #include "rtmidi\RtMidi.h"
 
-bool active = false;
+Window* settings;
+Window* visualizer;
+GLFWmonitor* monitor = nullptr;
+bool configure = false;
 
-float vertices[] = {
-	 0.5f,  0.5f, 0.0f,  // top right
-	 0.5f, -0.5f, 0.0f,  // bottom right
-	-0.5f, -0.5f, 0.0f,  // bottom left
-	-0.5f,  0.5f, 0.0f   // top left 
+Vector2 positions[] = {
+	{  0.05f,  0.05f },
+	{  0.05f, -0.05f },
+	{ -0.05f, -0.05f },
+	{ -0.05f,  0.05f }
 };
-unsigned int indices[] = {  // note that we start from 0!
-	0, 1, 3,   // first triangle
-	1, 2, 3    // second triangle
+
+std::vector<Vector2> offsets;
+std::vector<Vector3> colors;
+
+const Vector3 RED = { 1.0f, 0.0f, 0.0f };
+const Vector3 YELLOW = { 1.0f, 1.0f, 0.0f };
+const Vector3 BLUE = { 0.0f, 0.0f, 1.0f };
+const Vector3 GREEN = { 0.0f, 1.0f, 0.0f };
+const Vector3 ORANGE = { 1.0f, 0.65f, 0.0f };
+
+U32 indices[] = {
+	0, 1, 3,
+	1, 2, 3
 };
 
 const char* vertexShaderSource = "#version 460 core\n"
-"layout (location = 0) in vec3 aPos;\n"
+"layout (location = 0) in vec2 position;\n"
+"layout (location = 1) in vec2 offset;\n"
+"layout (location = 2) in vec3 color;\n"
+"out vec3 fragColor;\n"
 "void main()\n"
 "{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+"   gl_Position = vec4(position + offset, 0.0, 1.0);\n"
+"   fragColor = color;\n"
 "}\0";
 
 const char* fragmentShaderSource = "#version 460 core\n"
 "out vec4 FragColor;\n"
+"in vec3 fragColor;\n"
 "void main()\n"
 "{\n"
-"   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+"   FragColor = vec4(fragColor, 1.0f);\n"
 "}\0";
+
+static void error(int error, const char* description)
+{
+	fputs(description, stderr);
+}
 
 void callback(double deltatime, std::vector<unsigned char>* message, void* userData)
 {
-	active = message->at(0) == 144;
-
 	U32 nBytes = message->size();
 	for (U32 i = 0; i < nBytes; i++) { std::cout << "Byte " << i << " = " << (int)message->at(i) << ", "; }
 	if (nBytes > 0) { std::cout << "stamp = " << deltatime << std::endl; }
+
+	if (message->at(0) == 144)
+	{
+		switch (message->at(1))
+		{
+		case 44: { offsets.push_back({ -0.2f, 1.0f }); colors.push_back(RED);    } break;
+		case 45: { offsets.push_back({ -0.1f, 1.0f }); colors.push_back(YELLOW); } break;
+		case 46: { offsets.push_back({  0.0f, 1.0f }); colors.push_back(BLUE);   } break;
+		case 47: { offsets.push_back({  0.1f, 1.0f }); colors.push_back(GREEN);  } break;
+		case 48: { offsets.push_back({ -0.1f, 1.0f }); colors.push_back(YELLOW); } break;
+		case 49: { offsets.push_back({  0.0f, 1.0f }); colors.push_back(BLUE);   } break;
+		case 50: { offsets.push_back({  0.1f, 1.0f }); colors.push_back(GREEN);  } break;
+		case 51: { offsets.push_back({  0.2f, 1.0f }); colors.push_back(ORANGE); } break;
+		}
+	}
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	glViewport(0, 0, width, height);
-}
-
-void processInput(GLFWwindow* window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	{
 		glfwSetWindowShouldClose(window, true);
+	}
+
+	if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
+	{
+		configure = !configure;
+
+		visualizer->SetMenu(configure);
+		visualizer->SetInteractable(configure);
+	}
 }
 
 int main()
 {
-	glfwInit();
+	glfwSetErrorCallback(error);
+
+	if (!glfwInit()) { return -1; }
+
+	monitor = glfwGetPrimaryMonitor();
+
+	int x = 0;
+	int y = 0;
+	int width = 0;
+	int height = 0;
+	glfwGetMonitorWorkarea(monitor, &x, &y, &width, &height);
+
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(800, 600, "DrumVisualizer", NULL, NULL);
-	if (window == NULL)
-	{
-		std::cout << "Failed to create GLFW window" << std::endl;
-		glfwTerminate();
-		return -1;
-	}
-	glfwMakeContextCurrent(window);
+#ifdef __APPLE__
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
-		return -1;
-	}
+	WindowConfig config{};
+	config.name = "Drum Visualizer Settings";
 
-	glViewport(0, 0, 800, 600);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	settings = new Window(config);
+	glfwSetKeyCallback(*settings, keyCallback);
 
-	unsigned int VAO;
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
+	config.name = "Drum Visualizer";
+	config.transparent = true;
+	config.floating = true;
+	config.interactable = false;
+	config.menu = false;
+	config.clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-	unsigned int VBO;
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	visualizer = new Window(config);
+	glfwSetKeyCallback(*visualizer, keyCallback);
 
-	unsigned int EBO;
-	glGenBuffers(1, &EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	glEnable(GL_DEPTH_TEST);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
+	offsets.reserve(1000);
+	colors.reserve(1000);
 
-	unsigned int vertexShader;
+	U32 vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	Buffer positionBuffer(0, DataType::VECTOR2, positions, CountOf(positions) * sizeof(Vector2), false);
+	Buffer offsetsBuffer(1, DataType::VECTOR2, offsets.data(), offsets.capacity() * sizeof(Vector2), true);
+	Buffer colorsBuffer(2, DataType::VECTOR3, colors.data(), colors.capacity() * sizeof(Vector3), true);
+
+	U32 vertexShader;
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
 
-	unsigned int fragmentShader;
+	U32 fragmentShader;
 	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
 	glCompileShader(fragmentShader);
 
-	unsigned int shaderProgram;
+	U32 shaderProgram;
 	shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
 	glLinkProgram(shaderProgram);
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
 
 	RtMidiIn* midi = new RtMidiIn();
 
@@ -118,29 +173,42 @@ int main()
 	midi->openPort(0, "Midi");
 	midi->ignoreTypes(false, false, false);
 
-	while (!glfwWindowShouldClose(window))
+	F32 previousTime = glfwGetTime();
+	F32 deltaTime = 0.0f;
+
+	while (!glfwWindowShouldClose(*settings))
 	{
-		processInput(window);
+		deltaTime = glfwGetTime() - previousTime;
+		previousTime = glfwGetTime();
 
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glUseProgram(shaderProgram);
-		if (active)
+		for (Vector2& offset : offsets)
 		{
-			glBindVertexArray(VAO);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-			glBindVertexArray(0);
+			offset.y -= deltaTime * 1.0f;
 		}
 
-		glfwSwapBuffers(window);
+		offsetsBuffer.Flush(offsets.data(), offsets.capacity() * sizeof(Vector2));
+		colorsBuffer.Flush(colors.data(), colors.capacity() * sizeof(Vector3));
+
+		settings->Update();
+		settings->Render();
+
+		visualizer->Update();
+
+		glUseProgram(shaderProgram);
+		glBindVertexArray(vao);
+		glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, offsets.size());
+
+		glBindVertexArray(0);
+
+		visualizer->Render();
 		glfwPollEvents();
 	}
 
 	delete midi;
 
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
+	delete settings;
+	delete visualizer;
+	glDeleteVertexArrays(1, &vao);
 	glfwTerminate();
 
 	return 0;
