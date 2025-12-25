@@ -84,32 +84,23 @@ bool Visualizer::Initialize()
 	glfwSetKeyCallback(visualizerWindow, KeyCallback);
 
 	midi = new RtMidiIn();
-
-	mappings.push_back({ NoteType::Snare, 44, 10, 0, 0.0f });
-	mappings.push_back({ NoteType::Tom1, 45, 10, 0, 0.0f });
-	mappings.push_back({ NoteType::Tom2, 46, 10, 0, 0.0f });
-	mappings.push_back({ NoteType::Tom3, 47, 10, 0, 0.0f });
-	mappings.push_back({ NoteType::Cymbal1, 48, 10, 0, 0.0f });
-	mappings.push_back({ NoteType::Cymbal2, 49, 10, 0, 0.0f });
-	mappings.push_back({ NoteType::Cymbal3, 50, 10, 0, 0.0f });
-	mappings.push_back({ NoteType::Kick, 51, 10, 0, 0.0f });
-
-	std::string name = midi->getPortName(0);
-	name = name.substr(0, name.size() - 2);
+	std::string midiName = midi->getPortName(0);
+	midiName = midiName.substr(0, midiName.size() - 2);
 	midi->setCallback(MidiCallback, nullptr);
-	midi->openPort(0, name);
+	midi->openPort(0, midiName);
 	midi->ignoreTypes(false, false, false);
 
-	//TODO: load Documents\Clone Hero\MIDI Profiles\[name].yaml for midi config
 	std::wstring cloneHeroFolder = GetCloneHeroFolder();
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 	LoadProfiles(cloneHeroFolder);
 	if (settings.profileId != U32_MAX)
 	{
 		settings.dynamicThreshold = profiles[settings.profileId].dynamicThreshold;
 		settings.leftyFlip = profiles[settings.profileId].leftyFlip;
-		std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 		LoadColors(cloneHeroFolder + L"Custom\\Colors\\" + converter.from_bytes(profiles[settings.profileId].colorProfile) + L".ini");
 	}
+
+	LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\" + converter.from_bytes(midiName) + L".yaml");
 
 	if (!Renderer::Initialize()) { return false; }
 
@@ -302,6 +293,59 @@ Vector3 Visualizer::HexToRBG(const std::string& hex)
 	return { ((rgb & RMask) >> 16) / 255.0f, ((rgb & GMask) >> 8) / 255.0f, (rgb & BMask) / 255.0f };
 }
 
+void Visualizer::LoadMidiProfile(const std::wstring& path)
+{
+	std::ifstream t(path);
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+
+	std::string data = buffer.str();
+
+	U64 snare = data.find("Red Pad:");
+	U64 tom1 = data.find("Yellow Pad:", snare);
+	U64 tom2 = data.find("Blue Pad:", tom1);
+	U64 tom3 = data.find("Green Pad:", tom2);
+	U64 kick = data.find("Kick Pad:", tom3);
+	U64 cymbal1 = data.find("Yellow Cymbal:", kick);
+	U64 cymbal2 = data.find("Blue Cymbal:", cymbal1);
+	U64 cymbal3 = data.find("Green Cymbal:", cymbal2);
+
+	ParseMappings(data, NoteType::Snare, snare, tom1);
+	ParseMappings(data, NoteType::Tom1, tom1, tom2);
+	ParseMappings(data, NoteType::Tom2, tom2, tom3);
+	ParseMappings(data, NoteType::Tom3, tom3, kick);
+	ParseMappings(data, NoteType::Kick, kick, cymbal1);
+	ParseMappings(data, NoteType::Cymbal1, cymbal1, cymbal2);
+	ParseMappings(data, NoteType::Cymbal2, cymbal2, cymbal3);
+	ParseMappings(data, NoteType::Cymbal3, cymbal3, std::string::npos);
+}
+
+void Visualizer::ParseMappings(const std::string& data, NoteType type, U64 start, U64 end)
+{
+	U64 i = start;
+	U64 lineEnd = 0;
+
+	while ((i = data.find('-', i)) < end)
+	{
+		Mapping mapping{};
+		mapping.type = type;
+
+		i = data.find(':', i) + 2;
+		lineEnd = data.find('\n', i);
+		mapping.midiValue = std::stoi(data.substr(i, lineEnd - i));
+
+		i = data.find(':', i) + 2;
+		lineEnd = data.find('\n', i);
+		mapping.velocityThreshold = std::stoi(data.substr(i, lineEnd - i));
+
+		i = data.find(':', i) + 2;
+		lineEnd = data.find('\n', i);
+		mapping.overhitThreshold = std::stoi(data.substr(i, lineEnd - i));
+
+		mappings.push_back(mapping);
+	}
+}
+
 void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message, void* userData)
 {
 	U64 byteCount = message->size();
@@ -323,14 +367,14 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message, void* use
 					switch (mapping.type)
 					{
 						//TODO: use scroll direction
-					case NoteType::Snare: { Renderer::SpawnNote({ -0.2f, 1.0f }, settings.snareColor * dynamic); } break;
-					case NoteType::Tom1: { Renderer::SpawnNote({ -0.1f, 1.0f }, settings.tom1Color * dynamic); } break;
-					case NoteType::Tom2: { Renderer::SpawnNote({ 0.0f, 1.0f }, settings.tom2Color * dynamic); } break;
-					case NoteType::Tom3: { Renderer::SpawnNote({ 0.1f, 1.0f }, settings.tom3Color * dynamic); } break;
-					case NoteType::Cymbal1: { Renderer::SpawnNote({ -0.1f, 1.0f }, settings.cymbal1Color * dynamic); } break;
-					case NoteType::Cymbal2: { Renderer::SpawnNote({ 0.0f, 1.0f }, settings.cymbal2Color * dynamic); } break;
-					case NoteType::Cymbal3: { Renderer::SpawnNote({ 0.1f, 1.0f }, settings.cymbal3Color * dynamic); } break;
-					case NoteType::Kick: { Renderer::SpawnNote({ 0.2f, 1.0f }, settings.kickColor * dynamic); } break;
+					case NoteType::Snare: { Renderer::SpawnNote({ -0.35f, 1.0f }, settings.snareColor * dynamic); } break;
+					case NoteType::Tom1: { Renderer::SpawnNote({ -0.15f, 1.0f }, settings.tom1Color * dynamic); } break;
+					case NoteType::Tom2: { Renderer::SpawnNote({ 0.05f, 1.0f }, settings.tom2Color * dynamic); } break;
+					case NoteType::Tom3: { Renderer::SpawnNote({ 0.25f, 1.0f }, settings.tom3Color * dynamic); } break;
+					case NoteType::Cymbal1: { Renderer::SpawnNote({ -0.25f, 1.0f }, settings.cymbal1Color * dynamic); } break;
+					case NoteType::Cymbal2: { Renderer::SpawnNote({ -0.05f, 1.0f }, settings.cymbal2Color * dynamic); } break;
+					case NoteType::Cymbal3: { Renderer::SpawnNote({ 0.15f, 1.0f }, settings.cymbal3Color * dynamic); } break;
+					case NoteType::Kick: { Renderer::SpawnNote({ 0.35f, 1.0f }, settings.kickColor * dynamic); } break;
 					}
 				}
 

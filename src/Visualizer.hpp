@@ -90,6 +90,8 @@ private:
 	static void LoadProfiles(const std::wstring& cloneHeroPath);
 	static void LoadColors(const std::wstring& path);
 	static Vector3 HexToRBG(const std::string& hex);
+	static void LoadMidiProfile(const std::wstring& path);
+	static void ParseMappings(const std::string& data, NoteType type, U64 start, U64 end);
 
 	static Settings settings;
 	static std::vector<Profile> profiles;

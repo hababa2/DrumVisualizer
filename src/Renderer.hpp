@@ -23,6 +23,8 @@ private:
 	static Buffer offsetsBuffer;
 	static Buffer colorsBuffer;
 
+	static constexpr U32 MaxNotes = 200;
+	static U32 nextIndex;
 	static std::vector<Vector2> offsets;
 	static std::vector<Vector3> colors;
 };

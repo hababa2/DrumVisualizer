@@ -4,10 +4,10 @@
 #include "glfw\glfw3.h"
 
 Vector2 positions[] = {
-	{  0.05f,  0.05f },
-	{  0.05f, -0.05f },
-	{ -0.05f, -0.05f },
-	{ -0.05f,  0.05f }
+	{  0.05f,  0.025f },
+	{  0.05f, -0.025f },
+	{ -0.05f, -0.025f },
+	{ -0.05f,  0.025f }
 };
 
 U32 indices[] = {
@@ -41,6 +41,7 @@ U32 Renderer::shaderProgram;
 Buffer Renderer::positionBuffer;
 Buffer Renderer::offsetsBuffer;
 Buffer Renderer::colorsBuffer;
+U32 Renderer::nextIndex = 0;
 std::vector<Vector2> Renderer::offsets;
 std::vector<Vector3> Renderer::colors;
 
@@ -72,8 +73,8 @@ bool Renderer::Initialize()
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
-	offsets.reserve(1000);
-	colors.reserve(1000);
+	offsets.resize(MaxNotes, { 0.0f, -100.0f });
+	colors.resize(MaxNotes, { 0.0f, 0.0f, 0.0f });
 
 	return true;
 }
@@ -114,6 +115,8 @@ void Renderer::Update(F64 deltaTime, Window& settingsWindow, Window& visualizerW
 
 void Renderer::SpawnNote(const Vector2& position, const Vector3& color)
 {
-	offsets.push_back(position);
-	colors.push_back(color);
+	offsets[nextIndex] = position;
+	colors[nextIndex] = color;
+
+	++nextIndex %= MaxNotes;
 }
