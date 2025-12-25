@@ -137,7 +137,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)lib/include;$(SolutionDir)src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(SolutionDir)lib/glfw3.lib;winmm.lib;windowsapp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
