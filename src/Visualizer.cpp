@@ -173,29 +173,31 @@ void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 
 	U64 i = 0;
 	U64 end = 0;
-	while ((i = data.find('[', i)) != std::string::npos)
+	U64 start = 0;
+
+	while ((start = data.find('[', i)) != std::string::npos)
 	{
 		Profile profile{};
 
-		i = data.find("dynamics_threshold", i);
+		i = data.find("dynamics_threshold", start);
 		i = data.find('=', i) + 2;
 		end = data.find('\n', i);
 
 		profile.dynamicThreshold = std::stoi(data.substr(i, end - i));
 
-		i = data.find("color_profile_name", end);
+		i = data.find("color_profile_name", start);
 		i = data.find('=', i) + 2;
 		end = data.find('\n', i);
 
 		profile.colorProfile = data.substr(i, end - i);
 
-		i = data.find("player_name", end);
+		i = data.find("player_name", start);
 		i = data.find('=', i) + 2;
 		end = data.find('\n', i);
 
 		profile.name = data.substr(i, end - i);
 
-		i = data.find("lefty_flip", end);
+		i = data.find("lefty_flip", start);
 		i = data.find('=', i) + 2;
 		end = data.find('\n', i);
 
@@ -224,57 +226,58 @@ void Visualizer::LoadColors(const std::wstring& path)
 
 	U64 i = 0;
 	U64 end = 0;
+	U64 start = data.find("[drums]");
 
-	i = data.find("note_kick ", i);
+	i = data.find("note_kick ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	std::string hex = data.substr(i, end - i);
 	settings.kickColor = HexToRBG(hex);
 
-	i = data.find("cym_blue ", i);
+	i = data.find("cym_blue ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
 	settings.cymbal2Color = HexToRBG(hex);
 
-	i = data.find("cym_yellow ", i);
+	i = data.find("cym_yellow ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
 	settings.cymbal1Color = HexToRBG(hex);
 
-	i = data.find("cym_green ", i);
+	i = data.find("cym_green ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
 	settings.cymbal3Color = HexToRBG(hex);
 
-	i = data.find("tom_blue ", i);
+	i = data.find("tom_blue ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
 	settings.tom2Color = HexToRBG(hex);
 
-	i = data.find("tom_yellow ", i);
+	i = data.find("tom_yellow ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
 	settings.tom1Color = HexToRBG(hex);
 
-	i = data.find("tom_red ", i);
+	i = data.find("tom_red ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
 	settings.snareColor = HexToRBG(hex);
 
-	i = data.find("tom_green ", i);
+	i = data.find("tom_green ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
