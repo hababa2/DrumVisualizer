@@ -36,7 +36,6 @@ const char* fragmentShaderSource =
 "   FragColor = vec4(fragColor, 1.0);\n"
 "}\0";
 
-
 U32 Renderer::vao;
 U32 Renderer::shaderProgram;
 Buffer Renderer::positionBuffer;
@@ -89,11 +88,11 @@ void Renderer::Shutdown()
 	glDeleteVertexArrays(1, &vao);
 }
 
-void Renderer::Update(F32 deltaTime, Window& settingsWindow, Window& visualizerWindow)
+void Renderer::Update(F64 deltaTime, Window& settingsWindow, Window& visualizerWindow)
 {
 	for (Vector2& offset : offsets)
 	{
-		offset.y -= deltaTime * 1.0f;
+		offset.y -= (F32)(deltaTime * 1.0);
 	}
 
 	offsetsBuffer.Flush(offsets.data(), offsets.capacity() * sizeof(Vector2));
