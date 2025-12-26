@@ -10,6 +10,7 @@
 struct GLFWwindow;
 struct GLFWmonitor;
 namespace rt { namespace midi { class RtMidiIn; } }
+namespace rt { namespace midi { class RtMidiOut; } }
 
 enum class ScrollDirection
 {
@@ -99,7 +100,8 @@ private:
 	static Window settingsWindow;
 	static Window visualizerWindow;
 	static GLFWmonitor* monitor;
-	static rt::midi::RtMidiIn* midi;
+	static rt::midi::RtMidiIn* midiIn;
+	static rt::midi::RtMidiOut* midiOut;
 	static F64 lastInput;
 	static bool configureMode;
 };

@@ -22,7 +22,8 @@ std::vector<Mapping> Visualizer::mappings;
 Window Visualizer::settingsWindow;
 Window Visualizer::visualizerWindow;
 GLFWmonitor* Visualizer::monitor = nullptr;
-RtMidiIn* Visualizer::midi = nullptr;
+RtMidiIn* Visualizer::midiIn = nullptr;
+RtMidiOut* Visualizer::midiOut = nullptr;
 F64 Visualizer::lastInput = 0.0;
 bool Visualizer::configureMode = false;
 
@@ -83,12 +84,36 @@ bool Visualizer::Initialize()
 	visualizerWindow.Create(config);
 	glfwSetKeyCallback(visualizerWindow, KeyCallback);
 
-	midi = new RtMidiIn();
-	std::string midiName = midi->getPortName(0);
-	midiName = midiName.substr(0, midiName.size() - 2);
-	midi->setCallback(MidiCallback, nullptr);
-	midi->openPort(0, midiName);
-	midi->ignoreTypes(false, false, false);
+	midiIn = new RtMidiIn();
+
+	bool found = false;
+	U32 portCount = midiIn->getPortCount();
+	for (U32 i = 0; i < portCount; ++i)
+	{
+		std::string midiName = midiIn->getPortName(i);
+		midiName = midiName.substr(0, midiName.size() - 2);
+
+		if (midiName == "loopMIDI Visualizer")
+		{
+			midiIn->openPort(i, midiName);
+			found = true;
+			break;
+		}
+	}
+
+	if (!found)
+	{
+		std::cout << "Failed to find loopMIDI Visualizer port" << std::endl;
+		return false;
+	}
+
+	midiIn->setCallback(MidiCallback, nullptr);
+	midiIn->ignoreTypes(false, false, false);
+
+#ifndef DV_PLATFORM_WINDOWS
+	midiOut = new RtMidiOut();
+	midiOut->openVirtualPort(midiName);
+#endif
 
 	std::wstring cloneHeroFolder = GetCloneHeroFolder();
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
@@ -100,7 +125,7 @@ bool Visualizer::Initialize()
 		LoadColors(cloneHeroFolder + L"Custom\\Colors\\" + converter.from_bytes(profiles[settings.profileId].colorProfile) + L".ini");
 	}
 
-	LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\" + converter.from_bytes(midiName) + L".yaml");
+	LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\loopMIDI CH.yaml");
 
 	if (!Renderer::Initialize()) { return false; }
 
@@ -142,7 +167,10 @@ void Visualizer::Shutdown()
 
 	Renderer::Shutdown();
 
-	delete midi;
+#ifndef DV_PLATFORM_WINDOWS
+	delete midiOut;
+#endif
+	delete midiIn;
 
 	settingsWindow.Destroy();
 	visualizerWindow.Destroy();
@@ -312,6 +340,7 @@ void Visualizer::LoadMidiProfile(const std::wstring& path)
 	U64 cymbal1 = data.find("Yellow Cymbal:", kick);
 	U64 cymbal2 = data.find("Blue Cymbal:", cymbal1);
 	U64 cymbal3 = data.find("Green Cymbal:", cymbal2);
+	U64 start = data.find("Start:", cymbal3);
 
 	ParseMappings(data, NoteType::Snare, snare, tom1);
 	ParseMappings(data, NoteType::Tom1, tom1, tom2);
@@ -320,7 +349,7 @@ void Visualizer::LoadMidiProfile(const std::wstring& path)
 	ParseMappings(data, NoteType::Kick, kick, cymbal1);
 	ParseMappings(data, NoteType::Cymbal1, cymbal1, cymbal2);
 	ParseMappings(data, NoteType::Cymbal2, cymbal2, cymbal3);
-	ParseMappings(data, NoteType::Cymbal3, cymbal3, std::string::npos);
+	ParseMappings(data, NoteType::Cymbal3, cymbal3, start);
 }
 
 void Visualizer::ParseMappings(const std::string& data, NoteType type, U64 start, U64 end)
@@ -351,9 +380,13 @@ void Visualizer::ParseMappings(const std::string& data, NoteType type, U64 start
 
 void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message, void* userData)
 {
+#ifndef DV_PLATFORM_WINDOWS
+	midiOut->sendMessage(message);
+#endif
+
 	U64 byteCount = message->size();
 
-	if (byteCount > 0 && message->at(0) == 144)
+	if (byteCount > 0 && message->at(2) > 0)
 	{
 		//Debug message
 		for (U32 i = 0; i < byteCount; ++i) { std::cout << "Byte " << i << " = " << (I32)message->at(i) << ", "; }
