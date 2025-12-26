@@ -17,6 +17,7 @@
 #endif
 
 Settings Visualizer::settings{};
+Layout Visualizer::layout{};
 std::vector<Profile> Visualizer::profiles;
 std::vector<Mapping> Visualizer::mappings;
 Window Visualizer::settingsWindow;
@@ -386,7 +387,7 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message, void* use
 
 	U64 byteCount = message->size();
 
-	if (byteCount > 0 && message->at(2) > 0)
+	if (byteCount > 0 && (message->at(0) == 153 || message->at(0) == 144))
 	{
 		//Debug message
 		for (U32 i = 0; i < byteCount; ++i) { std::cout << "Byte " << i << " = " << (I32)message->at(i) << ", "; }
@@ -402,15 +403,14 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message, void* use
 
 					switch (mapping.type)
 					{
-						//TODO: use scroll direction
-					case NoteType::Snare: { Renderer::SpawnNote({ -0.35f, 1.0f }, settings.snareColor * dynamic); } break;
-					case NoteType::Tom1: { Renderer::SpawnNote({ -0.15f, 1.0f }, settings.tom1Color * dynamic); } break;
-					case NoteType::Tom2: { Renderer::SpawnNote({ 0.05f, 1.0f }, settings.tom2Color * dynamic); } break;
-					case NoteType::Tom3: { Renderer::SpawnNote({ 0.25f, 1.0f }, settings.tom3Color * dynamic); } break;
-					case NoteType::Cymbal1: { Renderer::SpawnNote({ -0.25f, 1.0f }, settings.cymbal1Color * dynamic); } break;
-					case NoteType::Cymbal2: { Renderer::SpawnNote({ -0.05f, 1.0f }, settings.cymbal2Color * dynamic); } break;
-					case NoteType::Cymbal3: { Renderer::SpawnNote({ 0.15f, 1.0f }, settings.cymbal3Color * dynamic); } break;
-					case NoteType::Kick: { Renderer::SpawnNote({ 0.35f, 1.0f }, settings.kickColor * dynamic); } break;
+					case NoteType::Snare: { Renderer::SpawnNote(layout.snareStart, settings.snareColor * dynamic); } break;
+					case NoteType::Kick: { Renderer::SpawnNote(layout.kickStart, settings.kickColor * dynamic); } break;
+					case NoteType::Cymbal1: { Renderer::SpawnNote(layout.cymbal1Start, settings.cymbal1Color * dynamic); } break;
+					case NoteType::Tom1: { Renderer::SpawnNote(layout.tom1Start, settings.tom1Color * dynamic); } break;
+					case NoteType::Cymbal2: { Renderer::SpawnNote(layout.cymbal2Start, settings.cymbal2Color * dynamic); } break;
+					case NoteType::Tom2: { Renderer::SpawnNote(layout.tom2Start, settings.tom2Color * dynamic); } break;
+					case NoteType::Cymbal3: { Renderer::SpawnNote(layout.cymbal3Start, settings.cymbal3Color * dynamic); } break;
+					case NoteType::Tom3: { Renderer::SpawnNote(layout.tom3Start, settings.tom3Color * dynamic); } break;
 					}
 				}
 

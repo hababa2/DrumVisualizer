@@ -38,7 +38,7 @@ struct Mapping
 	I32 midiValue;
 	I32 velocityThreshold;
 	I32 overhitThreshold;
-	F64 lastHit;
+	F64 lastHit{ 0.0 };
 };
 
 struct Profile
@@ -47,6 +47,18 @@ struct Profile
 	std::string colorProfile;
 	U32 dynamicThreshold{ 100 };
 	bool leftyFlip;
+};
+
+struct Layout
+{
+	Vector2 snareStart{ -0.35f, 1.0f };
+	Vector2 kickStart{ -0.25f, 1.0f };
+	Vector2 cymbal1Start{ -0.15f, 1.0f };
+	Vector2 tom1Start{ -0.05f, 1.0f };
+	Vector2 cymbal2Start{ 0.05f, 1.0f };
+	Vector2 tom2Start{ 0.15f, 1.0f };
+	Vector2 cymbal3Start{ 0.25f, 1.0f };
+	Vector2 tom3Start{ 0.35f, 1.0f };
 };
 
 struct Settings
@@ -95,6 +107,7 @@ private:
 	static void ParseMappings(const std::string& data, NoteType type, U64 start, U64 end);
 
 	static Settings settings;
+	static Layout layout;
 	static std::vector<Profile> profiles;
 	static std::vector<Mapping> mappings;
 	static Window settingsWindow;
