@@ -2,6 +2,8 @@
 
 #include "glad\glad.h"
 
+#include <iostream>
+
 Vector2 positions[] = {
 	{  0.05f,  0.025f },
 	{  0.05f, -0.025f },
@@ -55,20 +57,47 @@ bool Renderer::Initialize()
 	offsetsBuffer.Create(1, DataType::VECTOR2, offsets.data(), static_cast<U32>(offsets.capacity() * sizeof(Vector2)), true);
 	colorsBuffer.Create(2, DataType::VECTOR3, colors.data(), static_cast<U32>(colors.capacity() * sizeof(Vector3)), true);
 
+	I32 success;
+	C8 infoLog[512];
+
 	U32 vertexShader;
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
+	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+	if (!success)
+	{
+		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+		std::cout << "Vertex shader compilation failed: " << infoLog << std::endl;
+		return false;
+	}
 
 	U32 fragmentShader;
 	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
 	glCompileShader(fragmentShader);
+	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+	if (!success)
+	{
+		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+		std::cout << "Fragment shader compilation failed: " << infoLog << std::endl;
+		glDeleteShader(vertexShader);
+		return false;
+	}
 
 	shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
 	glLinkProgram(shaderProgram);
+	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+	if (!success)
+	{
+		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+		std::cout << "Shader program linking failed: " << infoLog << std::endl;
+		glDeleteShader(vertexShader);
+		glDeleteShader(fragmentShader);
+		return false;
+	}
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
