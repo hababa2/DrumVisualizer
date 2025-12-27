@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CMake: Configure",
+            "type": "cmake",
+            "command": "configure",
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: Build Debug",
+            "type": "cmake",
+            "command": "build",
+            "targets": ["DrumVisualizer"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$msCompile"]
+        },
+        {
+            "label": "CMake: Build Release",
+            "type": "cmake",
+            "command": "build",
+            "targets": ["DrumVisualizer"],
+            "problemMatcher": ["$msCompile"]
+        }
+    ]
+}

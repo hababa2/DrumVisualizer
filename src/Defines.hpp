@@ -52,6 +52,8 @@ static inline constexpr double F64_MIN = 2.2250738585072014e-308;			//Minimum va
 #	ifndef _WIN64
 #		error "64-bit operating system is required!"
 #	endif
+#	define WIN32_LEAN_AND_MEAN
+#	include <windows.h>
 #elif __APPLE__
 #include <TargetConditionals.h>
 #if TARGET_IPHONE_SIMULATOR
