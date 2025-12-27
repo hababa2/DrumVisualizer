@@ -13,16 +13,16 @@ enum class DataType
 
 struct Buffer
 {
-	void Create(U32 location, DataType type, void* data, U32 size, bool instance);
+	void Create(U32 location, DataType type, void* data, U64 size, bool instance);
 	void Destroy();
 
-	void Flush(void* data, U32 size);
+	void Flush(void* data, U64 size);
 
 private:
 	U32 id{ U32_MAX };
 	U32 location;
 	DataType type;
 	void* data;
-	U32 size;
+	U64 size;
 	bool instance;
 };

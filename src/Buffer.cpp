@@ -3,7 +3,7 @@
 #include "glad\glad.h"
 #include "glfw\glfw3.h"
 
-void Buffer::Create(U32 location, DataType type, void* data, U32 size, bool instance)
+void Buffer::Create(U32 location, DataType type, void* data, U64 size, bool instance)
 {
 	this->location = location;
 	this->type = type;
@@ -33,7 +33,7 @@ void Buffer::Destroy()
 	glDeleteBuffers(1, &id);
 }
 
-void Buffer::Flush(void* data, U32 size)
+void Buffer::Flush(void* data, U64 size)
 {
 	this->data = data;
 	this->size = size;

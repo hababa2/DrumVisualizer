@@ -106,7 +106,7 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 
 	glUseProgram(shaderProgram);
 	glBindVertexArray(vao);
-	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, offsets.size());
+	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, (I32)offsets.size());
 
 	glBindVertexArray(0);
 
