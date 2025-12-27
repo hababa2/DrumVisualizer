@@ -255,6 +255,8 @@ bool Visualizer::LoadConfig()
 		case "scrollDirection"_Hash: { settings.scrollDirection = (ScrollDirection)std::stoi(value); } break;
 		}
 	}
+
+	return true;
 }
 
 void Visualizer::SaveConfig()
