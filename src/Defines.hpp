@@ -132,9 +132,27 @@ template<class Type, U64 Count> constexpr U64 CountOf(Type(&)[Count]) { return C
 /// <returns>The count of elements</returns>
 template<class Type, U32 Count> constexpr U32 CountOf32(Type(&)[Count]) { return Count; }
 
+static constexpr U64 Hash(const C8* str, U64 length)
+{
+	U64 hash = 5381;
+	U64 i = 0;
+
+	for (i = 0; i < length; ++str, ++i)
+	{
+		hash = ((hash << 5) + hash) + (*str);
+	}
+
+	return hash;
+}
+
+constexpr inline U64 operator""_Hash(const C8 * str, U64 length) { return Hash(str, length); }
+
 struct Vector2
 {
 	F32 x, y;
+
+	Vector2& operator+=(const Vector2& v) { x += v.x; y += v.y; return *this; }
+	Vector2 operator*(F32 f) const { return { x * f, y * f }; }
 };
 
 struct Vector3

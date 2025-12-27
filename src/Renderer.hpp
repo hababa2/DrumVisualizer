@@ -13,8 +13,9 @@ public:
 	static bool Initialize();
 	static void Shutdown();
 
-	static void Update(F64 deltaTime, Window& settingsWindow, Window& visualizerWindow);
+	static void Update(Vector2 velocity, Window& settingsWindow, Window& visualizerWindow);
 	static void SpawnNote(const Vector2& position, const Vector3& color);
+	static void ClearNotes();
 
 private:
 	static U32 vao;

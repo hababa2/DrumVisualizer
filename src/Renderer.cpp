@@ -73,7 +73,7 @@ bool Renderer::Initialize()
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
-	offsets.resize(MaxNotes, { 0.0f, -100.0f });
+	offsets.resize(MaxNotes, { -100.0f, -100.0f });
 	colors.resize(MaxNotes, { 0.0f, 0.0f, 0.0f });
 
 	return true;
@@ -89,11 +89,11 @@ void Renderer::Shutdown()
 	glDeleteVertexArrays(1, &vao);
 }
 
-void Renderer::Update(F64 deltaTime, Window& settingsWindow, Window& visualizerWindow)
+void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualizerWindow)
 {
 	for (Vector2& offset : offsets)
 	{
-		offset.y -= (F32)(deltaTime * 1.0);
+		offset += velocity;
 	}
 
 	offsetsBuffer.Flush(offsets.data(), offsets.capacity() * sizeof(Vector2));
@@ -119,4 +119,12 @@ void Renderer::SpawnNote(const Vector2& position, const Vector3& color)
 	colors[nextIndex] = color;
 
 	++nextIndex %= MaxNotes;
+}
+
+void Renderer::ClearNotes()
+{
+	for (Vector2& offset : offsets)
+	{
+		offset = { -100.0f, -100.0f };
+	}
 }

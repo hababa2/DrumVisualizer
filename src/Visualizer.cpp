@@ -18,6 +18,7 @@
 
 Settings Visualizer::settings{};
 Layout Visualizer::layout{};
+ColorProfile Visualizer::colorProfile{};
 std::vector<Profile> Visualizer::profiles;
 std::vector<Mapping> Visualizer::mappings;
 Window Visualizer::settingsWindow;
@@ -52,14 +53,14 @@ bool Visualizer::Initialize()
 
 	if (std::filesystem::exists("settings.cfg"))
 	{
-		std::ifstream configFile("settings.cfg", std::ios::binary | std::ios::in);
-
-		configFile.read((char*)&settings, sizeof(Settings));
+		LoadConfig();
 	}
 	else
 	{
 		//TODO: default visualizer size/position based on monitor
 	}
+
+	SetScrollDirection(settings.scrollDirection);
 
 	WindowConfig config{};
 	config.name = "Drum Visualizer Settings";
@@ -138,7 +139,17 @@ bool Visualizer::Initialize()
 		deltaTime = glfwGetTime() - previousTime;
 		previousTime = glfwGetTime();
 
-		Renderer::Update(deltaTime, settingsWindow, visualizerWindow);
+		Vector2 velocity{ 0.0f, 0.0f };
+
+		switch (settings.scrollDirection)
+		{
+		case ScrollDirection::Up: { velocity = Vector2{ 0.0f, 1.0f } * deltaTime * settings.scrollSpeed; } break;
+		case ScrollDirection::Down: { velocity = Vector2{ 0.0f, -1.0f } * deltaTime * settings.scrollSpeed; } break;
+		case ScrollDirection::Left: { velocity = Vector2{ -1.0f, 0.0f } * deltaTime * settings.scrollSpeed; } break;
+		case ScrollDirection::Right: { velocity = Vector2{ 1.0f, 0.0f } * deltaTime * settings.scrollSpeed; } break;
+		}
+
+		Renderer::Update(velocity, settingsWindow, visualizerWindow);
 
 		glfwPollEvents();
 	}
@@ -162,9 +173,7 @@ void Visualizer::Shutdown()
 	settings.visualizerWindowWidth = config.width;
 	settings.visualizerWindowHeight = config.height;
 
-	std::ofstream configFile("settings.cfg", std::ios::binary | std::ios::out);
-
-	configFile.write((char*)&settings, sizeof(Settings));
+	SaveConfig();
 
 	Renderer::Shutdown();
 
@@ -176,6 +185,69 @@ void Visualizer::Shutdown()
 	settingsWindow.Destroy();
 	visualizerWindow.Destroy();
 	glfwTerminate();
+}
+
+void Visualizer::LoadConfig()
+{
+	std::ifstream t("settings.cfg");
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+
+	std::string data = buffer.str();
+	t.close();
+
+	std::string name;
+	std::string value;
+
+	U64 i = 0;
+	U64 end = 0;
+
+	while ((end = data.find('=', i)) != std::string::npos)
+	{
+		name = data.substr(i, end - i);
+		i = end + 1;
+		end = data.find('\n', i);
+		value = data.substr(i, end - i);
+		i = end + 1;
+
+		switch (Hash(name.data(), name.size()))
+		{
+		case "settingWindowX"_Hash: { settings.settingWindowX = std::stoi(value); } break;
+		case "settingWindowY"_Hash: { settings.settingWindowY = std::stoi(value); } break;
+		case "settingWindowWidth"_Hash: { settings.settingWindowWidth = std::stoi(value); } break;
+		case "settingWindowHeight"_Hash: { settings.settingWindowHeight = std::stoi(value); } break;
+		case "visualizerWindowX"_Hash: { settings.visualizerWindowX = std::stoi(value); } break;
+		case "visualizerWindowY"_Hash: { settings.visualizerWindowY = std::stoi(value); } break;
+		case "visualizerWindowWidth"_Hash: { settings.visualizerWindowWidth = std::stoi(value); } break;
+		case "visualizerWindowHeight"_Hash: { settings.visualizerWindowHeight = std::stoi(value); } break;
+		case "profileId"_Hash: { settings.profileId = std::stoi(value); } break;
+		case "dynamicThreshold"_Hash: { settings.dynamicThreshold = std::stoi(value); } break;
+		case "leftyFlip"_Hash: { settings.leftyFlip = std::stoi(value); } break;
+		case "scrollSpeed"_Hash: { settings.scrollSpeed = std::stof(value); } break;
+		case "scrollDirection"_Hash: { settings.scrollDirection = (ScrollDirection)std::stoi(value); } break;
+		}
+	}
+}
+
+void Visualizer::SaveConfig()
+{
+	std::ofstream output("settings.cfg");
+	output << "settingWindowX=" << settings.settingWindowX << '\n';
+	output << "settingWindowY=" << settings.settingWindowY << '\n';
+	output << "settingWindowWidth=" << settings.settingWindowWidth << '\n';
+	output << "settingWindowHeight=" << settings.settingWindowHeight << '\n';
+	output << "visualizerWindowX=" << settings.visualizerWindowX << '\n';
+	output << "visualizerWindowY=" << settings.visualizerWindowY << '\n';
+	output << "visualizerWindowWidth=" << settings.visualizerWindowWidth << '\n';
+	output << "visualizerWindowHeight=" << settings.visualizerWindowHeight << '\n';
+	output << "profileId=" << settings.profileId << '\n';
+	output << "dynamicThreshold=" << settings.dynamicThreshold << '\n';
+	output << "leftyFlip=" << settings.leftyFlip << '\n';
+	output << "scrollSpeed=" << settings.scrollSpeed << '\n';
+	output << "scrollDirection=" << (U32)settings.scrollDirection << '\n';
+
+	output.flush();
+	output.close();
 }
 
 std::wstring Visualizer::GetCloneHeroFolder()
@@ -199,6 +271,7 @@ void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 	buffer << t.rdbuf();
 
 	std::string data = buffer.str();
+	t.close();
 
 	U64 i = 0;
 	U64 end = 0;
@@ -252,6 +325,7 @@ void Visualizer::LoadColors(const std::wstring& path)
 	buffer << t.rdbuf();
 
 	std::string data = buffer.str();
+	t.close();
 
 	U64 i = 0;
 	U64 end = 0;
@@ -262,56 +336,56 @@ void Visualizer::LoadColors(const std::wstring& path)
 	end = data.find('\n', i);
 
 	std::string hex = data.substr(i, end - i);
-	settings.kickColor = HexToRBG(hex);
+	colorProfile.kickColor = HexToRBG(hex);
 
 	i = data.find("cym_blue ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
-	settings.cymbal2Color = HexToRBG(hex);
+	colorProfile.cymbal2Color = HexToRBG(hex);
 
 	i = data.find("cym_yellow ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
-	settings.cymbal1Color = HexToRBG(hex);
+	colorProfile.cymbal1Color = HexToRBG(hex);
 
 	i = data.find("cym_green ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
-	settings.cymbal3Color = HexToRBG(hex);
+	colorProfile.cymbal3Color = HexToRBG(hex);
 
 	i = data.find("tom_blue ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
-	settings.tom2Color = HexToRBG(hex);
+	colorProfile.tom2Color = HexToRBG(hex);
 
 	i = data.find("tom_yellow ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
-	settings.tom1Color = HexToRBG(hex);
+	colorProfile.tom1Color = HexToRBG(hex);
 
 	i = data.find("tom_red ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
-	settings.snareColor = HexToRBG(hex);
+	colorProfile.snareColor = HexToRBG(hex);
 
 	i = data.find("tom_green ", start);
 	i = data.find('#', i) + 1;
 	end = data.find('\n', i);
 
 	hex = data.substr(i, end - i);
-	settings.tom3Color = HexToRBG(hex);
+	colorProfile.tom3Color = HexToRBG(hex);
 }
 
 Vector3 Visualizer::HexToRBG(const std::string& hex)
@@ -332,6 +406,7 @@ void Visualizer::LoadMidiProfile(const std::wstring& path)
 	buffer << t.rdbuf();
 
 	std::string data = buffer.str();
+	t.close();
 
 	U64 snare = data.find("Red Pad:");
 	U64 tom1 = data.find("Yellow Pad:", snare);
@@ -379,6 +454,64 @@ void Visualizer::ParseMappings(const std::string& data, NoteType type, U64 start
 	}
 }
 
+void Visualizer::SetScrollDirection(ScrollDirection direction)
+{
+	Vector2 snareStart{ -0.35f, 1.0f };
+	Vector2 kickStart{ -0.25f, 1.0f };
+	Vector2 cymbal1Start{ -0.15f, 1.0f };
+	Vector2 tom1Start{ -0.05f, 1.0f };
+	Vector2 cymbal2Start{ 0.05f, 1.0f };
+	Vector2 tom2Start{ 0.15f, 1.0f };
+	Vector2 cymbal3Start{ 0.25f, 1.0f };
+	Vector2 tom3Start{ 0.35f, 1.0f };
+
+	settings.scrollDirection = direction;
+
+	switch (settings.scrollDirection)
+	{
+	case ScrollDirection::Down: {
+		layout.snareStart = { -0.35f, 1.0f };
+		layout.kickStart = { -0.25f, 1.0f };
+		layout.cymbal1Start = { -0.15f, 1.0f };
+		layout.tom1Start = { -0.05f, 1.0f };
+		layout.cymbal2Start = { 0.05f, 1.0f };
+		layout.tom2Start = { 0.15f, 1.0f };
+		layout.cymbal3Start = { 0.25f, 1.0f };
+		layout.tom3Start = { 0.35f, 1.0f };
+	} break;
+	case ScrollDirection::Right: {
+		layout.snareStart = { -1.0f, -0.35f };
+		layout.kickStart = { -1.0f, -0.25f };
+		layout.cymbal1Start = { -1.0f, -0.15f };
+		layout.tom1Start = { -1.0f, -0.05f };
+		layout.cymbal2Start = { -1.0f, 0.05f };
+		layout.tom2Start = { -1.0f, 0.15f };
+		layout.cymbal3Start = { -1.0f, 0.25f };
+		layout.tom3Start = { -1.0f, 0.35f };
+	} break;
+	case ScrollDirection::Up: {
+		layout.snareStart = { -0.35f, -1.0f };
+		layout.kickStart = { -0.25f, -1.0f };
+		layout.cymbal1Start = { -0.15f, -1.0f };
+		layout.tom1Start = { -0.05f, -1.0f };
+		layout.cymbal2Start = { 0.05f, -1.0f };
+		layout.tom2Start = { 0.15f, -1.0f };
+		layout.cymbal3Start = { 0.25f, -1.0f };
+		layout.tom3Start = { 0.35f, -1.0f };
+	} break;
+	case ScrollDirection::Left: {
+		layout.snareStart = { 1.0f, -0.35f };
+		layout.kickStart = { 1.0f, -0.25f };
+		layout.cymbal1Start = { 1.0f, -0.15f };
+		layout.tom1Start = { 1.0f, -0.05f };
+		layout.cymbal2Start = { 1.0f, 0.05f };
+		layout.tom2Start = { 1.0f, 0.15f };
+		layout.cymbal3Start = { 1.0f, 0.25f };
+		layout.tom3Start = { 1.0f, 0.35f };
+	} break;
+	}
+}
+
 void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message, void* userData)
 {
 #ifndef DV_PLATFORM_WINDOWS
@@ -408,14 +541,14 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message, void* use
 
 					switch (mapping.type)
 					{
-					case NoteType::Snare: { Renderer::SpawnNote(layout.snareStart, settings.snareColor * dynamic); } break;
-					case NoteType::Kick: { Renderer::SpawnNote(layout.kickStart, settings.kickColor * dynamic); } break;
-					case NoteType::Cymbal1: { Renderer::SpawnNote(layout.cymbal1Start, settings.cymbal1Color * dynamic); } break;
-					case NoteType::Tom1: { Renderer::SpawnNote(layout.tom1Start, settings.tom1Color * dynamic); } break;
-					case NoteType::Cymbal2: { Renderer::SpawnNote(layout.cymbal2Start, settings.cymbal2Color * dynamic); } break;
-					case NoteType::Tom2: { Renderer::SpawnNote(layout.tom2Start, settings.tom2Color * dynamic); } break;
-					case NoteType::Cymbal3: { Renderer::SpawnNote(layout.cymbal3Start, settings.cymbal3Color * dynamic); } break;
-					case NoteType::Tom3: { Renderer::SpawnNote(layout.tom3Start, settings.tom3Color * dynamic); } break;
+					case NoteType::Snare: { Renderer::SpawnNote(layout.snareStart, colorProfile.snareColor * dynamic); } break;
+					case NoteType::Kick: { Renderer::SpawnNote(layout.kickStart, colorProfile.kickColor * dynamic); } break;
+					case NoteType::Cymbal1: { Renderer::SpawnNote(layout.cymbal1Start, colorProfile.cymbal1Color * dynamic); } break;
+					case NoteType::Tom1: { Renderer::SpawnNote(layout.tom1Start, colorProfile.tom1Color * dynamic); } break;
+					case NoteType::Cymbal2: { Renderer::SpawnNote(layout.cymbal2Start, colorProfile.cymbal2Color * dynamic); } break;
+					case NoteType::Tom2: { Renderer::SpawnNote(layout.tom2Start, colorProfile.tom2Color * dynamic); } break;
+					case NoteType::Cymbal3: { Renderer::SpawnNote(layout.cymbal3Start, colorProfile.cymbal3Color * dynamic); } break;
+					case NoteType::Tom3: { Renderer::SpawnNote(layout.tom3Start, colorProfile.tom3Color * dynamic); } break;
 					}
 				}
 
@@ -438,6 +571,19 @@ void Visualizer::KeyCallback(GLFWwindow* window, I32 key, I32 scancode, I32 acti
 
 		visualizerWindow.SetMenu(configureMode);
 		visualizerWindow.SetInteractable(configureMode);
+	}
+
+	if (key == GLFW_KEY_F2 && action == GLFW_PRESS)
+	{
+		switch (settings.scrollDirection)
+		{
+		case ScrollDirection::Down: { SetScrollDirection(ScrollDirection::Right); } break;
+		case ScrollDirection::Right: { SetScrollDirection(ScrollDirection::Up); } break;
+		case ScrollDirection::Up: { SetScrollDirection(ScrollDirection::Left); } break;
+		case ScrollDirection::Left: { SetScrollDirection(ScrollDirection::Down); } break;
+		}
+
+		Renderer::ClearNotes();
 	}
 }
 

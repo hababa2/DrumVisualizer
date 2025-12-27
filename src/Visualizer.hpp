@@ -17,7 +17,9 @@ enum class ScrollDirection
 	Up,
 	Down,
 	Left,
-	Right
+	Right,
+	
+	Count
 };
 
 enum class NoteType
@@ -61,6 +63,18 @@ struct Layout
 	Vector2 tom3Start{ 0.35f, 1.0f };
 };
 
+struct ColorProfile
+{
+	Vector3 snareColor{ 1.0f, 0.0f, 0.0f };
+	Vector3 tom1Color{ 1.0f, 1.0f, 0.0f };
+	Vector3 tom2Color{ 0.0f, 0.537254930f, 1.0f };
+	Vector3 tom3Color{ 0.0f, 1.0f, 0.0f };
+	Vector3 cymbal1Color{ 1.0f, 0.898039222f, 0.192156866f };
+	Vector3 cymbal2Color{ 0.113725491f, 0.388235301f, 1.0f };
+	Vector3 cymbal3Color{ 0.0470588244f, 1.0f, 0.0470588244f };
+	Vector3 kickColor{ 1.0f, 0.274509817f, 0.0f };
+};
+
 struct Settings
 {
 	I32 settingWindowX{ 100 };
@@ -77,15 +91,8 @@ struct Settings
 	U32 dynamicThreshold{ 100 };
 	bool leftyFlip{ false };
 
+	F32 scrollSpeed{ 1.0f };
 	ScrollDirection scrollDirection{ ScrollDirection::Down };
-	Vector3 snareColor = { 1.0f, 0.0f, 0.0f };
-	Vector3 tom1Color = { 1.0f, 1.0f, 0.0f };
-	Vector3 tom2Color = { 0.0f, 0.537254930f, 1.0f };
-	Vector3 tom3Color = { 0.0f, 1.0f, 0.0f };
-	Vector3 cymbal1Color = { 1.0f, 0.898039222f, 0.192156866f };
-	Vector3 cymbal2Color = { 0.113725491f, 0.388235301f, 1.0f };
-	Vector3 cymbal3Color = { 0.0470588244f, 1.0f, 0.0470588244f };
-	Vector3 kickColor = { 1.0f, 0.274509817f, 0.0f };
 };
 
 class Visualizer
@@ -99,15 +106,19 @@ public:
 	static void ErrorCallback(I32 error, const C8* description);
 
 private:
+	static void LoadConfig();
+	static void SaveConfig();
 	static std::wstring GetCloneHeroFolder();
 	static void LoadProfiles(const std::wstring& cloneHeroPath);
 	static void LoadColors(const std::wstring& path);
 	static Vector3 HexToRBG(const std::string& hex);
 	static void LoadMidiProfile(const std::wstring& path);
 	static void ParseMappings(const std::string& data, NoteType type, U64 start, U64 end);
+	static void SetScrollDirection(ScrollDirection direction);
 
 	static Settings settings;
 	static Layout layout;
+	static ColorProfile colorProfile;
 	static std::vector<Profile> profiles;
 	static std::vector<Mapping> mappings;
 	static Window settingsWindow;
