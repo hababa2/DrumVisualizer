@@ -560,30 +560,37 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message, void* use
 
 void Visualizer::KeyCallback(GLFWwindow* window, I32 key, I32 scancode, I32 action, I32 mods)
 {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	if (action == GLFW_PRESS)
 	{
-		glfwSetWindowShouldClose(window, true);
-	}
-
-	if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
-	{
-		configureMode = !configureMode;
-
-		visualizerWindow.SetMenu(configureMode);
-		visualizerWindow.SetInteractable(configureMode);
-	}
-
-	if (key == GLFW_KEY_F2 && action == GLFW_PRESS)
-	{
-		switch (settings.scrollDirection)
+		switch (key)
 		{
-		case ScrollDirection::Down: { SetScrollDirection(ScrollDirection::Right); } break;
-		case ScrollDirection::Right: { SetScrollDirection(ScrollDirection::Up); } break;
-		case ScrollDirection::Up: { SetScrollDirection(ScrollDirection::Left); } break;
-		case ScrollDirection::Left: { SetScrollDirection(ScrollDirection::Down); } break;
-		}
+		case GLFW_KEY_ESCAPE: {
+			glfwSetWindowShouldClose(window, true);
+		} break;
+		case GLFW_KEY_F1: {
+			configureMode = !configureMode;
 
-		Renderer::ClearNotes();
+			visualizerWindow.SetMenu(configureMode);
+			visualizerWindow.SetInteractable(configureMode);
+		} break;
+		case GLFW_KEY_F2: {
+			switch (settings.scrollDirection)
+			{
+			case ScrollDirection::Down: { SetScrollDirection(ScrollDirection::Right); } break;
+			case ScrollDirection::Right: { SetScrollDirection(ScrollDirection::Up); } break;
+			case ScrollDirection::Up: { SetScrollDirection(ScrollDirection::Left); } break;
+			case ScrollDirection::Left: { SetScrollDirection(ScrollDirection::Down); } break;
+			}
+
+			Renderer::ClearNotes();
+		} break;
+		case GLFW_KEY_MINUS: {
+			settings.scrollSpeed = max(settings.scrollSpeed - 0.25f, 0.5f);
+		} break;
+		case GLFW_KEY_EQUAL: {
+			settings.scrollSpeed = min(settings.scrollSpeed + 0.25f, 5.0f);
+		} break;
+		}
 	}
 }
 
