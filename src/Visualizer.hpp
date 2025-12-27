@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <string>
+#include <mutex>
 
 struct GLFWwindow;
 struct GLFWmonitor;
@@ -132,4 +133,5 @@ private:
 	static rt::midi::RtMidiOut* midiOut;
 	static F64 lastInput;
 	static bool configureMode;
+	static std::mutex midiMutex;
 };

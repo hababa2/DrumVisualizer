@@ -10,12 +10,46 @@
 
 #include <codecvt>
 #include <fstream>
-
+#include <mutex>
 
 #ifdef DV_PLATFORM_WINDOWS
 #include "shlobj_core.h"
 #include <objbase.h>
 #endif
+
+namespace {
+I32 SafeStoi(const std::string &str, I32 defaultValue = 0) {
+  try {
+    return std::stoi(str);
+  } catch (...) {
+    return defaultValue;
+  }
+}
+
+F32 SafeStof(const std::string &str, F32 defaultValue = 0.0f) {
+  try {
+    return std::stof(str);
+  } catch (...) {
+    return defaultValue;
+  }
+}
+
+F64 SafeStod(const std::string &str, F64 defaultValue = 0.0) {
+  try {
+    return std::stod(str);
+  } catch (...) {
+    return defaultValue;
+  }
+}
+
+U64 SafeStoull(const std::string &str, int base = 10, U64 defaultValue = 0) {
+  try {
+    return std::stoull(str, nullptr, base);
+  } catch (...) {
+    return defaultValue;
+  }
+}
+} // namespace
 
 Settings Visualizer::settings{};
 Layout Visualizer::layout{};
@@ -29,6 +63,7 @@ RtMidiIn *Visualizer::midiIn = nullptr;
 RtMidiOut *Visualizer::midiOut = nullptr;
 F64 Visualizer::lastInput = 0.0;
 bool Visualizer::configureMode = false;
+std::mutex Visualizer::midiMutex;
 
 bool Visualizer::Initialize() {
   if (!InitializeGlfw()) {
@@ -234,7 +269,7 @@ bool Visualizer::InitializeMidi() {
 bool Visualizer::LoadConfig() {
   std::ifstream file("settings.cfg");
 
-  if (!file.good()) {
+  if (!file.is_open()) {
     return false;
   }
 
@@ -256,43 +291,48 @@ bool Visualizer::LoadConfig() {
 
     switch (Hash(name.data(), name.size())) {
     case "settingWindowX"_Hash: {
-      settings.settingWindowX = std::stoi(value);
+      settings.settingWindowX = SafeStoi(value, settings.settingWindowX);
     } break;
     case "settingWindowY"_Hash: {
-      settings.settingWindowY = std::stoi(value);
+      settings.settingWindowY = SafeStoi(value, settings.settingWindowY);
     } break;
     case "settingWindowWidth"_Hash: {
-      settings.settingWindowWidth = std::stoi(value);
+      settings.settingWindowWidth =
+          SafeStoi(value, settings.settingWindowWidth);
     } break;
     case "settingWindowHeight"_Hash: {
-      settings.settingWindowHeight = std::stoi(value);
+      settings.settingWindowHeight =
+          SafeStoi(value, settings.settingWindowHeight);
     } break;
     case "visualizerWindowX"_Hash: {
-      settings.visualizerWindowX = std::stoi(value);
+      settings.visualizerWindowX = SafeStoi(value, settings.visualizerWindowX);
     } break;
     case "visualizerWindowY"_Hash: {
-      settings.visualizerWindowY = std::stoi(value);
+      settings.visualizerWindowY = SafeStoi(value, settings.visualizerWindowY);
     } break;
     case "visualizerWindowWidth"_Hash: {
-      settings.visualizerWindowWidth = std::stoi(value);
+      settings.visualizerWindowWidth =
+          SafeStoi(value, settings.visualizerWindowWidth);
     } break;
     case "visualizerWindowHeight"_Hash: {
-      settings.visualizerWindowHeight = std::stoi(value);
+      settings.visualizerWindowHeight =
+          SafeStoi(value, settings.visualizerWindowHeight);
     } break;
     case "profileId"_Hash: {
-      settings.profileId = std::stoi(value);
+      settings.profileId = SafeStoi(value, settings.profileId);
     } break;
     case "dynamicThreshold"_Hash: {
-      settings.dynamicThreshold = std::stoi(value);
+      settings.dynamicThreshold = SafeStoi(value, settings.dynamicThreshold);
     } break;
     case "leftyFlip"_Hash: {
-      settings.leftyFlip = std::stoi(value);
+      settings.leftyFlip = SafeStoi(value, settings.leftyFlip);
     } break;
     case "scrollSpeed"_Hash: {
-      settings.scrollSpeed = std::stof(value);
+      settings.scrollSpeed = SafeStof(value, settings.scrollSpeed);
     } break;
     case "scrollDirection"_Hash: {
-      settings.scrollDirection = (ScrollDirection)std::stoi(value);
+      settings.scrollDirection =
+          (ScrollDirection)SafeStoi(value, (I32)settings.scrollDirection);
     } break;
     }
   }
@@ -338,6 +378,12 @@ std::wstring Visualizer::GetCloneHeroFolder() {
 
 void Visualizer::LoadProfiles(const std::wstring &cloneHeroPath) {
   std::ifstream file(cloneHeroPath + L"profiles.ini");
+
+  if (!file.is_open()) {
+    profiles.push_back({"Guest", "DefaultColors", 100, false});
+    return;
+  }
+
   std::string data((std::istreambuf_iterator<char>(file)),
                    (std::istreambuf_iterator<char>()));
 
@@ -352,7 +398,7 @@ void Visualizer::LoadProfiles(const std::wstring &cloneHeroPath) {
     i = data.find('=', i) + 2;
     end = data.find('\n', i);
 
-    profile.dynamicThreshold = std::stoi(data.substr(i, end - i));
+    profile.dynamicThreshold = SafeStoi(data.substr(i, end - i), 100);
 
     i = data.find("color_profile_name", start);
     i = data.find('=', i) + 2;
@@ -384,6 +430,11 @@ void Visualizer::LoadProfiles(const std::wstring &cloneHeroPath) {
 
 void Visualizer::LoadColors(const std::wstring &path) {
   std::ifstream file(path);
+
+  if (!file.is_open()) {
+    return;
+  }
+
   std::string data((std::istreambuf_iterator<char>(file)),
                    (std::istreambuf_iterator<char>()));
 
@@ -453,7 +504,7 @@ Vector3 Visualizer::HexToRBG(const std::string &hex) {
   static constexpr U64 GMask = 0x00FF00;
   static constexpr U64 BMask = 0x0000FF;
 
-  U64 rgb = std::stoull(hex, nullptr, 16);
+  U64 rgb = SafeStoull(hex, 16, 0);
 
   return {((rgb & RMask) >> 16) / 255.0f, ((rgb & GMask) >> 8) / 255.0f,
           (rgb & BMask) / 255.0f};
@@ -461,6 +512,11 @@ Vector3 Visualizer::HexToRBG(const std::string &hex) {
 
 void Visualizer::LoadMidiProfile(const std::wstring &path) {
   std::ifstream file(path);
+
+  if (!file.is_open()) {
+    return;
+  }
+
   std::string data((std::istreambuf_iterator<char>(file)),
                    (std::istreambuf_iterator<char>()));
 
@@ -495,15 +551,15 @@ void Visualizer::ParseMappings(const std::string &data, NoteType type,
 
     i = data.find(':', i) + 2;
     lineEnd = data.find('\n', i);
-    mapping.midiValue = std::stoi(data.substr(i, lineEnd - i));
+    mapping.midiValue = SafeStoi(data.substr(i, lineEnd - i), 0);
 
     i = data.find(':', i) + 2;
     lineEnd = data.find('\n', i);
-    mapping.velocityThreshold = std::stoi(data.substr(i, lineEnd - i));
+    mapping.velocityThreshold = SafeStoi(data.substr(i, lineEnd - i), 0);
 
     i = data.find(':', i) + 2;
     lineEnd = data.find('\n', i);
-    mapping.overhitThreshold = std::stod(data.substr(i, lineEnd - i));
+    mapping.overhitThreshold = SafeStod(data.substr(i, lineEnd - i), 0.0);
 
     mappings.push_back(mapping);
   }
@@ -576,6 +632,7 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8> *message,
 #endif
 
   if (byteCount >= 3 && (message->at(0) == 153 || message->at(0) == 144)) {
+    std::lock_guard<std::mutex> lock(midiMutex);
     for (Mapping &mapping : mappings) {
       if (message->at(1) == mapping.midiValue) {
         if (message->at(2) >= mapping.velocityThreshold &&
