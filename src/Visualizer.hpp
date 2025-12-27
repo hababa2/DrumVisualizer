@@ -110,7 +110,7 @@ private:
 	static bool InitializeWindows();
 	static bool InitializeCH();
 	static bool InitializeMidi();
-	static void LoadConfig();
+	static bool LoadConfig();
 	static void SaveConfig();
 	static std::wstring GetCloneHeroFolder();
 	static void LoadProfiles(const std::wstring& cloneHeroPath);

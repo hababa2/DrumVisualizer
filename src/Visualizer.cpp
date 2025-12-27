@@ -9,7 +9,6 @@
 #include "rtmidi\RtMidi.h"
 
 #include <fstream>
-#include <filesystem>
 #include <codecvt>
 
 #ifdef DV_PLATFORM_WINDOWS
@@ -122,11 +121,7 @@ bool Visualizer::InitializeGlfw()
 
 bool Visualizer::InitializeWindows()
 {
-	if (std::filesystem::exists("settings.cfg"))
-	{
-		LoadConfig();
-	}
-	else
+	if(!LoadConfig())
 	{
 		monitor = glfwGetPrimaryMonitor();
 
@@ -221,14 +216,13 @@ bool Visualizer::InitializeMidi()
 	return true;
 }
 
-void Visualizer::LoadConfig()
+bool Visualizer::LoadConfig()
 {
-	std::ifstream t("settings.cfg");
-	std::stringstream buffer;
-	buffer << t.rdbuf();
+	std::ifstream file("settings.cfg");
 
-	std::string data = buffer.str();
-	t.close();
+	if (!file.good()) { return false; }
+
+	std::string data((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
 
 	std::string name;
 	std::string value;
@@ -300,12 +294,8 @@ std::wstring Visualizer::GetCloneHeroFolder()
 
 void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 {
-	std::ifstream t(cloneHeroPath + L"profiles.ini");
-	std::stringstream buffer;
-	buffer << t.rdbuf();
-
-	std::string data = buffer.str();
-	t.close();
+	std::ifstream file(cloneHeroPath + L"profiles.ini");
+	std::string data((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
 
 	U64 i = 0;
 	U64 end = 0;
@@ -354,12 +344,8 @@ void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 
 void Visualizer::LoadColors(const std::wstring& path)
 {
-	std::ifstream t(path);
-	std::stringstream buffer;
-	buffer << t.rdbuf();
-
-	std::string data = buffer.str();
-	t.close();
+	std::ifstream file(path);
+	std::string data((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
 
 	U64 i = 0;
 	U64 end = 0;
@@ -435,12 +421,8 @@ Vector3 Visualizer::HexToRBG(const std::string& hex)
 
 void Visualizer::LoadMidiProfile(const std::wstring& path)
 {
-	std::ifstream t(path);
-	std::stringstream buffer;
-	buffer << t.rdbuf();
-
-	std::string data = buffer.str();
-	t.close();
+	std::ifstream file(path);
+	std::string data((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
 
 	U64 snare = data.find("Red Pad:");
 	U64 tom1 = data.find("Yellow Pad:", snare);
