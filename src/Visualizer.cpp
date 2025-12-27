@@ -66,21 +66,32 @@ bool Visualizer::configureMode = false;
 std::mutex Visualizer::midiMutex;
 
 bool Visualizer::Initialize() {
+#ifdef DV_DEBUG
+	std::cout << "=== DrumVisualizer Debug Mode ===" << std::endl;
+#endif
   if (!InitializeGlfw()) {
+		Shutdown();
     return false;
   }
   if (!InitializeWindows()) {
+		Shutdown();
     return false;
   }
   if (!InitializeCH()) {
+		Shutdown();
     return false;
   }
   if (!InitializeMidi()) {
+		Shutdown();
     return false;
   }
   if (!Renderer::Initialize()) {
+		Shutdown();
     return false;
   }
+#ifdef DV_DEBUG
+	std::cout << "Initialized successfully!" << std::endl;
+#endif
 
   MainLoop();
   Shutdown();
@@ -89,6 +100,9 @@ bool Visualizer::Initialize() {
 }
 
 void Visualizer::Shutdown() {
+#ifdef DV_DEBUG
+	std::cout << std::endl << "=== Shutting down ===" << std::endl;
+#endif
   WindowConfig config = settingsWindow.Config();
 
   settings.settingWindowX = config.x;
@@ -103,8 +117,14 @@ void Visualizer::Shutdown() {
   settings.visualizerWindowWidth = config.width;
   settings.visualizerWindowHeight = config.height;
 
+#ifdef DV_DEBUG
+	std::cout << "Saving configuration..." << std::endl;
+#endif
   SaveConfig();
 
+#ifdef DV_DEBUG
+	std::cout << "Cleaning up resources..." << std::endl;
+#endif
   Renderer::Shutdown();
 
 #ifndef DV_PLATFORM_WINDOWS
@@ -115,6 +135,9 @@ void Visualizer::Shutdown() {
   settingsWindow.Destroy();
   visualizerWindow.Destroy();
   glfwTerminate();
+#ifdef DV_DEBUG
+	std::cout << "Shutdown complete" << std::endl;
+#endif
 }
 
 void Visualizer::MainLoop() {
@@ -154,9 +177,12 @@ void Visualizer::MainLoop() {
 
 bool Visualizer::InitializeGlfw() {
   glfwSetErrorCallback(ErrorCallback);
+#ifdef DV_DEBUG
+	std::cout << "Initializing GLFW..." << std::endl;
+#endif
 
   if (!glfwInit()) {
-    std::cout << "Failed To Initialize GLFW!" << std::endl;
+    std::cout << "Failed To Initialize GLFW, shutting down" << std::endl;
     return false;
   }
 
@@ -172,7 +198,11 @@ bool Visualizer::InitializeGlfw() {
 }
 
 bool Visualizer::InitializeWindows() {
+#ifdef DV_DEBUG
+	std::cout << "Initializing windows..." << std::endl;
+#endif
   if (!LoadConfig()) {
+    std::cout << "No settings.cfg found, using default settings" << std::endl;
     monitor = glfwGetPrimaryMonitor();
 
     I32 x = 0;
@@ -231,13 +261,22 @@ bool Visualizer::InitializeCH() {
 }
 
 bool Visualizer::InitializeMidi() {
+#ifdef DV_DEBUG
+	std::cout << "Initializing MIDI..." << std::endl;
+#endif
   midiIn = new RtMidiIn();
 
   bool found = false;
   std::string foundPortName;
   U32 portCount = midiIn->getPortCount();
+#ifdef DV_DEBUG
+	std::cout << "Found " << portCount << " MIDI port(s)" << std::endl;
+#endif
   for (U32 i = 0; i < portCount; ++i) {
     std::string midiName = midiIn->getPortName(i);
+#ifdef DV_DEBUG
+		std::cout << "  Port " << i << ": " << midiName << std::endl;
+#endif
     if (midiName.size() >= 2) {
       midiName = midiName.substr(0, midiName.size() - 2);
     }
@@ -246,12 +285,15 @@ bool Visualizer::InitializeMidi() {
       midiIn->openPort(i, midiName);
       foundPortName = midiName;
       found = true;
+#ifdef DV_DEBUG
+			std::cout << "Connected to MIDI port: " << midiName << std::endl;
+#endif
       break;
     }
   }
 
   if (!found) {
-    std::cout << "Failed To Find 'loopMIDI Visualizer' Port!" << std::endl;
+    std::cout << "Failed To Find 'loopMIDI Visualizer' Port, shutting down" << std::endl;
     return false;
   }
 
@@ -267,14 +309,16 @@ bool Visualizer::InitializeMidi() {
 }
 
 bool Visualizer::LoadConfig() {
+#ifdef DV_DEBUG
+	std::cout << "Loading configuration..." << std::endl;
+#endif
   std::ifstream file("settings.cfg");
-
-  if (!file.is_open()) {
-    return false;
-  }
-
   std::string data((std::istreambuf_iterator<char>(file)),
                    (std::istreambuf_iterator<char>()));
+
+  if (!file.is_open() || data.empty()) {
+    return false;
+  }
 
   std::string name;
   std::string value;
@@ -372,20 +416,27 @@ std::wstring Visualizer::GetCloneHeroFolder() {
 
   documents.append(L"\\Clone Hero\\");
 
+#ifdef DV_DEBUG
+	std::wcout << "Found Clone Hero path: " << documents << std::endl;
+#endif
+
   return documents;
 #endif
 }
 
 void Visualizer::LoadProfiles(const std::wstring &cloneHeroPath) {
+#ifdef DV_DEBUG
+	std::cout << "Loading profiles..." << std::endl;
+#endif
   std::ifstream file(cloneHeroPath + L"profiles.ini");
+  std::string data((std::istreambuf_iterator<char>(file)),
+                   (std::istreambuf_iterator<char>()));
 
-  if (!file.is_open()) {
+  if (!file.is_open() || data.empty()) {
+    std::cout << "Failed to open profiles.ini, using default profile" << std::endl;
     profiles.push_back({"Guest", "DefaultColors", 100, false});
     return;
   }
-
-  std::string data((std::istreambuf_iterator<char>(file)),
-                   (std::istreambuf_iterator<char>()));
 
   U64 i = 0;
   U64 end = 0;
@@ -421,22 +472,23 @@ void Visualizer::LoadProfiles(const std::wstring &cloneHeroPath) {
     profiles.push_back(profile);
   }
 
-  if (profiles.empty()) {
-    profiles.push_back({"Guest", "DefaultColors", 100, false});
-  } else if (settings.profileId == U32_MAX) {
+	if (settings.profileId == U32_MAX) {
     settings.profileId = 0;
   }
 }
 
 void Visualizer::LoadColors(const std::wstring &path) {
+#ifdef DV_DEBUG
+	std::cout << "Loading profile colors..." << std::endl;
+#endif
   std::ifstream file(path);
-
-  if (!file.is_open()) {
-    return;
-  }
-
   std::string data((std::istreambuf_iterator<char>(file)),
                    (std::istreambuf_iterator<char>()));
+
+  if (!file.is_open() || data.empty()) {
+    std::cout << "Failed to open profile colors, using default colors" << std::endl;
+    return;
+  }
 
   U64 i = 0;
   U64 end = 0;
@@ -512,13 +564,13 @@ Vector3 Visualizer::HexToRBG(const std::string &hex) {
 
 void Visualizer::LoadMidiProfile(const std::wstring &path) {
   std::ifstream file(path);
-
-  if (!file.is_open()) {
-    return;
-  }
-
   std::string data((std::istreambuf_iterator<char>(file)),
                    (std::istreambuf_iterator<char>()));
+
+  if (!file.is_open() || data.empty()) {
+    std::wcout << "Failed to open MIDI profile " << path << ", shutting down" << std::endl;
+    return;
+  }
 
   U64 snare = data.find("Red Pad:");
   U64 tom1 = data.find("Yellow Pad:", snare);
@@ -686,45 +738,54 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8> *message,
 
 void Visualizer::KeyCallback(GLFWwindow *window, I32 key, I32 scancode,
                              I32 action, I32 mods) {
+#ifdef DV_DEBUG
+	std::cout << "Key: " << key << ", Action: " << action << ", Mods: " << mods << std::endl;
+#endif
   if (action == GLFW_PRESS) {
     switch (key) {
     case GLFW_KEY_ESCAPE: {
       glfwSetWindowShouldClose(window, true);
     } break;
     case GLFW_KEY_F1: {
+#ifdef DV_DEBUG
+			std::cout << "Configure mode toggled" << std::endl;
+#endif
       configureMode = !configureMode;
 
-      visualizerWindow.SetMenu(configureMode);
-      visualizerWindow.SetInteractable(configureMode);
-    } break;
-    case GLFW_KEY_F2: {
-      switch (settings.scrollDirection) {
-      case ScrollDirection::Down: {
-        SetScrollDirection(ScrollDirection::Right);
-      } break;
-      case ScrollDirection::Right: {
-        SetScrollDirection(ScrollDirection::Up);
-      } break;
-      case ScrollDirection::Up: {
-        SetScrollDirection(ScrollDirection::Left);
-      } break;
-      case ScrollDirection::Left: {
-        SetScrollDirection(ScrollDirection::Down);
-      } break;
-      default:
-        break;
-      }
+			visualizerWindow.SetMenu(configureMode);
+			visualizerWindow.SetInteractable(configureMode);
+		} break;
+		case GLFW_KEY_F2: {
+			switch (settings.scrollDirection)
+			{
+			case ScrollDirection::Down: { SetScrollDirection(ScrollDirection::Right); } break;
+			case ScrollDirection::Right: { SetScrollDirection(ScrollDirection::Up); } break;
+			case ScrollDirection::Up: { SetScrollDirection(ScrollDirection::Left); } break;
+			case ScrollDirection::Left: { SetScrollDirection(ScrollDirection::Down); } break;
+			default: break;
+			}
 
-      Renderer::ClearNotes();
-    } break;
-    case GLFW_KEY_MINUS: {
-      settings.scrollSpeed = max(settings.scrollSpeed - 0.25f, 0.5f);
-    } break;
-    case GLFW_KEY_EQUAL: {
-      settings.scrollSpeed = min(settings.scrollSpeed + 0.25f, 5.0f);
-    } break;
-    }
-  }
+			Renderer::ClearNotes();
+#ifdef DV_DEBUG
+			std::cout << "Scroll direction changed to: " << (I32)settings.scrollDirection << std::endl;
+#endif
+		} break;
+		case GLFW_KEY_MINUS:
+		case GLFW_KEY_KP_SUBTRACT: {
+			settings.scrollSpeed = max(settings.scrollSpeed - 0.25f, 0.5f);
+#ifdef DV_DEBUG
+			std::cout << "Scroll speed decreased to: " << settings.scrollSpeed << std::endl;
+#endif
+		} break;
+		case GLFW_KEY_EQUAL:
+		case GLFW_KEY_KP_ADD: {
+			settings.scrollSpeed = min(settings.scrollSpeed + 0.25f, 5.0f);
+#ifdef DV_DEBUG
+			std::cout << "Scroll speed increased to: " << settings.scrollSpeed << std::endl;
+#endif
+		} break;
+		}
+	}
 }
 
 void Visualizer::ErrorCallback(I32 error, const C8 *description) {
