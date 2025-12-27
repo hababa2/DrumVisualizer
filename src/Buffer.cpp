@@ -1,7 +1,6 @@
 #include "Buffer.hpp"
 
 #include "glad\glad.h"
-#include "glfw\glfw3.h"
 
 void Buffer::Create(U32 location, DataType type, void* data, U32 size, bool instance)
 {
