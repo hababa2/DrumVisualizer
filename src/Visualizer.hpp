@@ -37,7 +37,7 @@ struct Mapping
 	NoteType type;
 	I32 midiValue;
 	I32 velocityThreshold;
-	I32 overhitThreshold;
+	F64 overhitThreshold;
 	F64 lastHit{ 0.0 };
 };
 

@@ -373,7 +373,7 @@ void Visualizer::ParseMappings(const std::string& data, NoteType type, U64 start
 
 		i = data.find(':', i) + 2;
 		lineEnd = data.find('\n', i);
-		mapping.overhitThreshold = std::stoi(data.substr(i, lineEnd - i));
+		mapping.overhitThreshold = std::stod(data.substr(i, lineEnd - i));
 
 		mappings.push_back(mapping);
 	}
@@ -385,20 +385,25 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message, void* use
 	midiOut->sendMessage(message);
 #endif
 
+	lastInput += deltatime;
+
 	U64 byteCount = message->size();
+
+#ifdef DV_DEBUG
+	for (U32 i = 0; i < byteCount; ++i) { std::cout << "Byte " << i << " = " << (I32)message->at(i) << ", "; }
+	std::cout << "stamp = " << deltatime << std::endl;
+#endif
 
 	if (byteCount > 0 && (message->at(0) == 153 || message->at(0) == 144))
 	{
-		//Debug message
-		for (U32 i = 0; i < byteCount; ++i) { std::cout << "Byte " << i << " = " << (I32)message->at(i) << ", "; }
-		std::cout << "stamp = " << deltatime << std::endl;
-
 		for (Mapping& mapping : mappings)
 		{
 			if (message->at(1) == mapping.midiValue)
 			{
-				if (message->at(2) >= mapping.velocityThreshold) //TODO: check overhit threshold
+				if (message->at(2) >= mapping.velocityThreshold && (lastInput - mapping.lastHit) >= mapping.overhitThreshold)
 				{
+					mapping.lastHit = lastInput;
+
 					F32 dynamic = message->at(2) < settings.dynamicThreshold ? 0.5f : 1.0f;
 
 					switch (mapping.type)
