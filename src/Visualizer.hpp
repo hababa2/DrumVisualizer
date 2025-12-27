@@ -17,9 +17,7 @@ enum class ScrollDirection
 	Up,
 	Down,
 	Left,
-	Right,
-	
-	Count
+	Right
 };
 
 enum class NoteType
@@ -99,14 +97,20 @@ class Visualizer
 {
 public:
 	static bool Initialize();
-	static void Shutdown();
 
 	static void MidiCallback(F64 deltatime, std::vector<U8>* message, void* userData);
 	static void KeyCallback(GLFWwindow* window, I32 key, I32 scancode, I32 action, I32 mods);
 	static void ErrorCallback(I32 error, const C8* description);
 
 private:
-	static void LoadConfig();
+	static void Shutdown();
+	static void MainLoop();
+
+	static bool InitializeGlfw();
+	static bool InitializeWindows();
+	static bool InitializeCH();
+	static bool InitializeMidi();
+	static bool LoadConfig();
 	static void SaveConfig();
 	static std::wstring GetCloneHeroFolder();
 	static void LoadProfiles(const std::wstring& cloneHeroPath);

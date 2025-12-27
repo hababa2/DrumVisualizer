@@ -9,7 +9,6 @@
 #include "rtmidi\RtMidi.h"
 
 #include <fstream>
-#include <filesystem>
 #include <codecvt>
 
 #ifdef DV_PLATFORM_WINDOWS
@@ -31,129 +30,14 @@ bool Visualizer::configureMode = false;
 
 bool Visualizer::Initialize()
 {
-	glfwSetErrorCallback(ErrorCallback);
-
-	if (!glfwInit()) { return false; }
-
-	monitor = glfwGetPrimaryMonitor();
-
-	I32 x = 0;
-	I32 y = 0;
-	I32 width = 0;
-	I32 height = 0;
-	glfwGetMonitorWorkarea(monitor, &x, &y, &width, &height);
-
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#ifdef __APPLE__
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-	if (std::filesystem::exists("settings.cfg"))
-	{
-		LoadConfig();
-	}
-	else
-	{
-		//TODO: default visualizer size/position based on monitor
-	}
-
-	SetScrollDirection(settings.scrollDirection);
-
-	WindowConfig config{};
-	config.name = "Drum Visualizer Settings";
-	config.x = settings.settingWindowX;
-	config.y = settings.settingWindowY;
-	config.width = settings.settingWindowWidth;
-	config.height = settings.settingWindowHeight;
-
-	settingsWindow.Create(config);
-	glfwSetKeyCallback(settingsWindow, KeyCallback);
-
-	config.name = "Drum Visualizer";
-	config.transparent = true;
-	config.floating = true;
-	config.interactable = false;
-	config.menu = false;
-	config.clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-	config.x = settings.visualizerWindowX;
-	config.y = settings.visualizerWindowY;
-	config.width = settings.visualizerWindowWidth;
-	config.height = settings.visualizerWindowHeight;
-
-	visualizerWindow.Create(config);
-	glfwSetKeyCallback(visualizerWindow, KeyCallback);
-
-	midiIn = new RtMidiIn();
-
-	bool found = false;
-	U32 portCount = midiIn->getPortCount();
-	for (U32 i = 0; i < portCount; ++i)
-	{
-		std::string midiName = midiIn->getPortName(i);
-		midiName = midiName.substr(0, midiName.size() - 2);
-
-		if (midiName == "loopMIDI Visualizer")
-		{
-			midiIn->openPort(i, midiName);
-			found = true;
-			break;
-		}
-	}
-
-	if (!found)
-	{
-		std::cout << "Failed to find loopMIDI Visualizer port" << std::endl;
-		return false;
-	}
-
-	midiIn->setCallback(MidiCallback, nullptr);
-	midiIn->ignoreTypes(false, false, false);
-
-#ifndef DV_PLATFORM_WINDOWS
-	midiOut = new RtMidiOut();
-	midiOut->openVirtualPort(midiName);
-#endif
-
-	std::wstring cloneHeroFolder = GetCloneHeroFolder();
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-	LoadProfiles(cloneHeroFolder);
-	if (settings.profileId != U32_MAX)
-	{
-		settings.dynamicThreshold = profiles[settings.profileId].dynamicThreshold;
-		settings.leftyFlip = profiles[settings.profileId].leftyFlip;
-		LoadColors(cloneHeroFolder + L"Custom\\Colors\\" + converter.from_bytes(profiles[settings.profileId].colorProfile) + L".ini");
-	}
-
-	LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\loopMIDI CH.yaml");
-
+	if (!InitializeGlfw()) { return false; }
+	if (!InitializeWindows()) { return false; }
+	if (!InitializeCH()) { return false; }
+	if (!InitializeMidi()) { return false; }
 	if (!Renderer::Initialize()) { return false; }
 
-	F64 previousTime = glfwGetTime();
-	F64 deltaTime = 0.0;
-
-	while (!glfwWindowShouldClose(settingsWindow))
-	{
-		deltaTime = glfwGetTime() - previousTime;
-		previousTime = glfwGetTime();
-
-		Vector2 velocity{ 0.0f, 0.0f };
-
-		switch (settings.scrollDirection)
-		{
-		case ScrollDirection::Up: { velocity = Vector2{ 0.0f, 1.0f } * static_cast<F32>(deltaTime) * settings.scrollSpeed; } break;
-		case ScrollDirection::Down: { velocity = Vector2{ 0.0f, -1.0f } * static_cast<F32>(deltaTime) * settings.scrollSpeed; } break;
-		case ScrollDirection::Left: { velocity = Vector2{ -1.0f, 0.0f } * static_cast<F32>(deltaTime) * settings.scrollSpeed; } break;
-		case ScrollDirection::Right: { velocity = Vector2{ 1.0f, 0.0f } * static_cast<F32>(deltaTime) * settings.scrollSpeed; } break;
-		default: break;
-		}
-
-		Renderer::Update(velocity, settingsWindow, visualizerWindow);
-
-		glfwPollEvents();
-	}
+	MainLoop();
+	Shutdown();
 
 	return true;
 }
@@ -188,14 +72,157 @@ void Visualizer::Shutdown()
 	glfwTerminate();
 }
 
-void Visualizer::LoadConfig()
+void Visualizer::MainLoop()
 {
-	std::ifstream t("settings.cfg");
-	std::stringstream buffer;
-	buffer << t.rdbuf();
+	F64 previousTime = glfwGetTime();
+	F64 deltaTime = 0.0;
 
-	std::string data = buffer.str();
-	t.close();
+	while (!glfwWindowShouldClose(settingsWindow))
+	{
+		deltaTime = glfwGetTime() - previousTime;
+		previousTime = glfwGetTime();
+
+		Vector2 velocity{ 0.0f, 0.0f };
+
+		switch (settings.scrollDirection)
+		{
+		case ScrollDirection::Up: { velocity = Vector2{ 0.0f, 1.0f } * static_cast<F32>(deltaTime * settings.scrollSpeed); } break;
+		case ScrollDirection::Down: { velocity = Vector2{ 0.0f, -1.0f } * static_cast<F32>(deltaTime * settings.scrollSpeed); } break;
+		case ScrollDirection::Left: { velocity = Vector2{ -1.0f, 0.0f } * static_cast<F32>(deltaTime * settings.scrollSpeed); } break;
+		case ScrollDirection::Right: { velocity = Vector2{ 1.0f, 0.0f } * static_cast<F32>(deltaTime * settings.scrollSpeed); } break;
+		}
+
+		Renderer::Update(velocity, settingsWindow, visualizerWindow);
+
+		glfwPollEvents();
+	}
+}
+
+bool Visualizer::InitializeGlfw()
+{
+	glfwSetErrorCallback(ErrorCallback);
+
+	if (!glfwInit())
+	{
+		std::cout << "Failed To Initialize GLFW!" << std::endl;
+		return false;
+	}
+
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifdef __APPLE__
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+	return true;
+}
+
+bool Visualizer::InitializeWindows()
+{
+	if(!LoadConfig())
+	{
+		monitor = glfwGetPrimaryMonitor();
+
+		I32 x = 0;
+		I32 y = 0;
+		I32 width = 0;
+		I32 height = 0;
+		glfwGetMonitorWorkarea(monitor, &x, &y, &width, &height);
+
+		//TODO: default visualizer size/position based on monitor
+	}
+
+	SetScrollDirection(settings.scrollDirection);
+
+	WindowConfig config{};
+	config.name = "Drum Visualizer Settings";
+	config.x = settings.settingWindowX;
+	config.y = settings.settingWindowY;
+	config.width = settings.settingWindowWidth;
+	config.height = settings.settingWindowHeight;
+
+	settingsWindow.Create(config);
+	glfwSetKeyCallback(settingsWindow, KeyCallback);
+
+	config.name = "Drum Visualizer";
+	config.transparent = true;
+	config.floating = true;
+	config.interactable = false;
+	config.menu = false;
+	config.clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+	config.x = settings.visualizerWindowX;
+	config.y = settings.visualizerWindowY;
+	config.width = settings.visualizerWindowWidth;
+	config.height = settings.visualizerWindowHeight;
+
+	visualizerWindow.Create(config);
+	glfwSetKeyCallback(visualizerWindow, KeyCallback);
+
+	return true;
+}
+
+bool Visualizer::InitializeCH()
+{
+	std::wstring cloneHeroFolder = GetCloneHeroFolder();
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	LoadProfiles(cloneHeroFolder);
+	if (settings.profileId != U32_MAX)
+	{
+		settings.dynamicThreshold = profiles[settings.profileId].dynamicThreshold;
+		settings.leftyFlip = profiles[settings.profileId].leftyFlip;
+		LoadColors(cloneHeroFolder + L"Custom\\Colors\\" + converter.from_bytes(profiles[settings.profileId].colorProfile) + L".ini");
+	}
+
+	LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\loopMIDI CH.yaml");
+
+	return true;
+}
+
+bool Visualizer::InitializeMidi()
+{
+	midiIn = new RtMidiIn();
+
+	bool found = false;
+	U32 portCount = midiIn->getPortCount();
+	for (U32 i = 0; i < portCount; ++i)
+	{
+		std::string midiName = midiIn->getPortName(i);
+		midiName = midiName.substr(0, midiName.size() - 2);
+
+		if (midiName == "loopMIDI Visualizer")
+		{
+			midiIn->openPort(i, midiName);
+			found = true;
+			break;
+		}
+	}
+
+	if (!found)
+	{
+		std::cout << "Failed To Find 'loopMIDI Visualizer' Port!" << std::endl;
+		return false;
+	}
+
+	midiIn->setCallback(MidiCallback, nullptr);
+	midiIn->ignoreTypes(false, false, false);
+
+#ifndef DV_PLATFORM_WINDOWS
+	midiOut = new RtMidiOut();
+	midiOut->openVirtualPort(midiName);
+#endif
+
+	return true;
+}
+
+bool Visualizer::LoadConfig()
+{
+	std::ifstream file("settings.cfg");
+
+	if (!file.good()) { return false; }
+
+	std::string data((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
 
 	std::string name;
 	std::string value;
@@ -245,7 +272,7 @@ void Visualizer::SaveConfig()
 	output << "dynamicThreshold=" << settings.dynamicThreshold << '\n';
 	output << "leftyFlip=" << settings.leftyFlip << '\n';
 	output << "scrollSpeed=" << settings.scrollSpeed << '\n';
-	output << "scrollDirection=" << (U32)settings.scrollDirection << '\n';
+	output << "scrollDirection=" << static_cast<U32>(settings.scrollDirection) << '\n';
 
 	output.flush();
 	output.close();
@@ -267,12 +294,8 @@ std::wstring Visualizer::GetCloneHeroFolder()
 
 void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 {
-	std::ifstream t(cloneHeroPath + L"profiles.ini");
-	std::stringstream buffer;
-	buffer << t.rdbuf();
-
-	std::string data = buffer.str();
-	t.close();
+	std::ifstream file(cloneHeroPath + L"profiles.ini");
+	std::string data((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
 
 	U64 i = 0;
 	U64 end = 0;
@@ -321,12 +344,8 @@ void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 
 void Visualizer::LoadColors(const std::wstring& path)
 {
-	std::ifstream t(path);
-	std::stringstream buffer;
-	buffer << t.rdbuf();
-
-	std::string data = buffer.str();
-	t.close();
+	std::ifstream file(path);
+	std::string data((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
 
 	U64 i = 0;
 	U64 end = 0;
@@ -402,12 +421,8 @@ Vector3 Visualizer::HexToRBG(const std::string& hex)
 
 void Visualizer::LoadMidiProfile(const std::wstring& path)
 {
-	std::ifstream t(path);
-	std::stringstream buffer;
-	buffer << t.rdbuf();
-
-	std::string data = buffer.str();
-	t.close();
+	std::ifstream file(path);
+	std::string data((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
 
 	U64 snare = data.find("Red Pad:");
 	U64 tom1 = data.find("Yellow Pad:", snare);
