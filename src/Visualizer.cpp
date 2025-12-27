@@ -86,10 +86,10 @@ void Visualizer::MainLoop()
 
 		switch (settings.scrollDirection)
 		{
-		case ScrollDirection::Up: { velocity = Vector2{ 0.0f, 1.0f } *(F32)(deltaTime * settings.scrollSpeed); } break;
-		case ScrollDirection::Down: { velocity = Vector2{ 0.0f, -1.0f } *(F32)(deltaTime * settings.scrollSpeed); } break;
-		case ScrollDirection::Left: { velocity = Vector2{ -1.0f, 0.0f } *(F32)(deltaTime * settings.scrollSpeed); } break;
-		case ScrollDirection::Right: { velocity = Vector2{ 1.0f, 0.0f } *(F32)(deltaTime * settings.scrollSpeed); } break;
+		case ScrollDirection::Up: { velocity = Vector2{ 0.0f, 1.0f } * static_cast<F32>(deltaTime * settings.scrollSpeed); } break;
+		case ScrollDirection::Down: { velocity = Vector2{ 0.0f, -1.0f } * static_cast<F32>(deltaTime * settings.scrollSpeed); } break;
+		case ScrollDirection::Left: { velocity = Vector2{ -1.0f, 0.0f } * static_cast<F32>(deltaTime * settings.scrollSpeed); } break;
+		case ScrollDirection::Right: { velocity = Vector2{ 1.0f, 0.0f } * static_cast<F32>(deltaTime * settings.scrollSpeed); } break;
 		}
 
 		Renderer::Update(velocity, settingsWindow, visualizerWindow);
@@ -272,7 +272,7 @@ void Visualizer::SaveConfig()
 	output << "dynamicThreshold=" << settings.dynamicThreshold << '\n';
 	output << "leftyFlip=" << settings.leftyFlip << '\n';
 	output << "scrollSpeed=" << settings.scrollSpeed << '\n';
-	output << "scrollDirection=" << (U32)settings.scrollDirection << '\n';
+	output << "scrollDirection=" << static_cast<U32>(settings.scrollDirection) << '\n';
 
 	output.flush();
 	output.close();
@@ -282,7 +282,7 @@ std::wstring Visualizer::GetCloneHeroFolder()
 {
 #ifdef DV_PLATFORM_WINDOWS
 	PWSTR path = nullptr;
-	HRESULT hres = SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &path);
+	SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &path);
 
 	std::wstring documents(path);
 
@@ -472,15 +472,6 @@ void Visualizer::ParseMappings(const std::string& data, NoteType type, U64 start
 
 void Visualizer::SetScrollDirection(ScrollDirection direction)
 {
-	Vector2 snareStart{ -0.35f, 1.0f };
-	Vector2 kickStart{ -0.25f, 1.0f };
-	Vector2 cymbal1Start{ -0.15f, 1.0f };
-	Vector2 tom1Start{ -0.05f, 1.0f };
-	Vector2 cymbal2Start{ 0.05f, 1.0f };
-	Vector2 tom2Start{ 0.15f, 1.0f };
-	Vector2 cymbal3Start{ 0.25f, 1.0f };
-	Vector2 tom3Start{ 0.35f, 1.0f };
-
 	settings.scrollDirection = direction;
 
 	switch (settings.scrollDirection)
@@ -525,6 +516,7 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 		layout.cymbal3Start = { 1.0f, 0.25f };
 		layout.tom3Start = { 1.0f, 0.35f };
 	} break;
+	default: break;
 	}
 }
 
@@ -596,6 +588,7 @@ void Visualizer::KeyCallback(GLFWwindow* window, I32 key, I32 scancode, I32 acti
 			case ScrollDirection::Right: { SetScrollDirection(ScrollDirection::Up); } break;
 			case ScrollDirection::Up: { SetScrollDirection(ScrollDirection::Left); } break;
 			case ScrollDirection::Left: { SetScrollDirection(ScrollDirection::Down); } break;
+			default: break;
 			}
 
 			Renderer::ClearNotes();

@@ -1,7 +1,6 @@
 #include "Renderer.hpp"
 
 #include "glad\glad.h"
-#include "glfw\glfw3.h"
 
 Vector2 positions[] = {
 	{  0.05f,  0.025f },
@@ -52,9 +51,9 @@ bool Renderer::Initialize()
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	positionBuffer.Create(0, DataType::VECTOR2, positions, CountOf(positions) * sizeof(Vector2), false);
-	offsetsBuffer.Create(1, DataType::VECTOR2, offsets.data(), offsets.capacity() * sizeof(Vector2), true);
-	colorsBuffer.Create(2, DataType::VECTOR3, colors.data(), colors.capacity() * sizeof(Vector3), true);
+	positionBuffer.Create(0, DataType::VECTOR2, positions, static_cast<U32>(CountOf(positions) * sizeof(Vector2)), false);
+	offsetsBuffer.Create(1, DataType::VECTOR2, offsets.data(), static_cast<U32>(offsets.capacity() * sizeof(Vector2)), true);
+	colorsBuffer.Create(2, DataType::VECTOR3, colors.data(), static_cast<U32>(colors.capacity() * sizeof(Vector3)), true);
 
 	U32 vertexShader;
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -96,8 +95,8 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 		offset += velocity;
 	}
 
-	offsetsBuffer.Flush(offsets.data(), offsets.capacity() * sizeof(Vector2));
-	colorsBuffer.Flush(colors.data(), colors.capacity() * sizeof(Vector3));
+	offsetsBuffer.Flush(offsets.data(), static_cast<U32>(offsets.capacity() * sizeof(Vector2)));
+	colorsBuffer.Flush(colors.data(), static_cast<U32>(colors.capacity() * sizeof(Vector3)));
 
 	settingsWindow.Update();
 	settingsWindow.Render();
@@ -106,7 +105,7 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 
 	glUseProgram(shaderProgram);
 	glBindVertexArray(vao);
-	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, (I32)offsets.size());
+	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, static_cast<I32>(offsets.size()));
 
 	glBindVertexArray(0);
 
