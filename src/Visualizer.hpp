@@ -39,7 +39,7 @@ struct Mapping
 	I32 midiValue;
 	I32 velocityThreshold;
 	F64 overhitThreshold;
-	F64 lastHit{ 0.0 };
+	F64 lastHit{ -1.0 };
 };
 
 struct Profile
@@ -92,6 +92,9 @@ struct Settings
 
 	F32 scrollSpeed{ 1.0f };
 	ScrollDirection scrollDirection{ ScrollDirection::Down };
+	U32 tomTextureId{ 0 };
+	U32 cymbalTextureId{ 2 };
+	U32 kickTextureId{ 0 };
 };
 
 class Visualizer

@@ -395,6 +395,18 @@ bool Visualizer::LoadConfig()
 			settings.scrollDirection =
 				(ScrollDirection)SafeStoi(value, (I32)settings.scrollDirection);
 		} break;
+		case "tomTextureId"_Hash: {
+			settings.tomTextureId =
+				SafeStoi(value, settings.tomTextureId);
+		} break;
+		case "cymbalTextureId"_Hash: {
+			settings.cymbalTextureId =
+				SafeStoi(value, settings.cymbalTextureId);
+		} break;
+		case "kickTextureId"_Hash: {
+			settings.kickTextureId =
+				SafeStoi(value, settings.kickTextureId);
+		} break;
 		}
 	}
 
@@ -417,6 +429,9 @@ void Visualizer::SaveConfig()
 	output << "leftyFlip=" << settings.leftyFlip << '\n';
 	output << "scrollSpeed=" << settings.scrollSpeed << '\n';
 	output << "scrollDirection=" << static_cast<U32>(settings.scrollDirection) << '\n';
+	output << "tomTextureId=" << settings.tomTextureId << '\n';
+	output << "cymbalTextureId=" << settings.cymbalTextureId << '\n';
+	output << "kickTextureId=" << settings.kickTextureId << '\n';
 
 	output.flush();
 	output.close();
@@ -734,35 +749,35 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
 					{
 					case NoteType::Snare: {
 						Renderer::SpawnNote(layout.snareStart,
-							colorProfile.snareColor * dynamic);
+							colorProfile.snareColor * dynamic, settings.tomTextureId);
 					} break;
 					case NoteType::Kick: {
 						Renderer::SpawnNote(layout.kickStart,
-							colorProfile.kickColor * dynamic);
+							colorProfile.kickColor * dynamic, settings.kickTextureId);
 					} break;
 					case NoteType::Cymbal1: {
 						Renderer::SpawnNote(layout.cymbal1Start,
-							colorProfile.cymbal1Color * dynamic);
+							colorProfile.cymbal1Color * dynamic, settings.cymbalTextureId);
 					} break;
 					case NoteType::Tom1: {
 						Renderer::SpawnNote(layout.tom1Start,
-							colorProfile.tom1Color * dynamic);
+							colorProfile.tom1Color * dynamic, settings.tomTextureId);
 					} break;
 					case NoteType::Cymbal2: {
 						Renderer::SpawnNote(layout.cymbal2Start,
-							colorProfile.cymbal2Color * dynamic);
+							colorProfile.cymbal2Color * dynamic, settings.cymbalTextureId);
 					} break;
 					case NoteType::Tom2: {
 						Renderer::SpawnNote(layout.tom2Start,
-							colorProfile.tom2Color * dynamic);
+							colorProfile.tom2Color * dynamic, settings.tomTextureId);
 					} break;
 					case NoteType::Cymbal3: {
 						Renderer::SpawnNote(layout.cymbal3Start,
-							colorProfile.cymbal3Color * dynamic);
+							colorProfile.cymbal3Color * dynamic, settings.cymbalTextureId);
 					} break;
 					case NoteType::Tom3: {
 						Renderer::SpawnNote(layout.tom3Start,
-							colorProfile.tom3Color * dynamic);
+							colorProfile.tom3Color * dynamic, settings.tomTextureId);
 					} break;
 					}
 				}

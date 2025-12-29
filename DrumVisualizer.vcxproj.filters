@@ -80,5 +80,8 @@
     <ClInclude Include="src\Visualizer.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="lib\include\stb_image.h">
+      <Filter>Lib</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -18,6 +18,7 @@ void Buffer::Create(U32 location, DataType type, void* data, U64 size, bool inst
 	switch (type)
 	{
 	case DataType::INT: { glVertexAttribPointer(location, 1, GL_INT, GL_FALSE, 0, 0); } break;
+	case DataType::UINT: { glVertexAttribPointer(location, 1, GL_UNSIGNED_INT, GL_FALSE, 0, 0); } break;
 	case DataType::FLOAT: { glVertexAttribPointer(location, 1, GL_FLOAT, GL_FALSE, 0, 0); } break;
 	case DataType::VECTOR2: { glVertexAttribPointer(location, 2, GL_FLOAT, GL_FALSE, 0, 0); } break;
 	case DataType::VECTOR3: { glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, 0, 0); } break;

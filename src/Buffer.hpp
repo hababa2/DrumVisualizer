@@ -5,6 +5,7 @@
 enum class DataType
 {
 	INT,
+	UINT,
 	FLOAT,
 	VECTOR2,
 	VECTOR3,
