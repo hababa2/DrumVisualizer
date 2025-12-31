@@ -137,7 +137,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)lib/include;$(SolutionDir)src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>$(SolutionDir)lib/glfw3.lib;winmm.lib;windowsapp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
@@ -148,6 +148,7 @@
     <ClCompile Include="src\Buffer.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
+    <ClCompile Include="src\UI.cpp" />
     <ClCompile Include="src\Visualizer.cpp" />
     <ClCompile Include="src\Window.cpp" />
   </ItemGroup>
@@ -161,6 +162,7 @@
     <ClInclude Include="src\Buffer.hpp" />
     <ClInclude Include="src\Defines.hpp" />
     <ClInclude Include="src\Renderer.hpp" />
+    <ClInclude Include="src\UI.hpp" />
     <ClInclude Include="src\Visualizer.hpp" />
     <ClInclude Include="src\Window.hpp" />
   </ItemGroup>

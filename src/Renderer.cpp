@@ -72,6 +72,8 @@ std::vector<F32> Renderer::textureIds;
 bool Renderer::Initialize()
 {
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	stbi_set_flip_vertically_on_load(true);
 
 	glGenVertexArrays(1, &vao);

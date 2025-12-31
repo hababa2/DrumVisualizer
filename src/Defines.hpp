@@ -122,6 +122,14 @@ static inline constexpr double F64_MIN = 2.2250738585072014e-308;			//Minimum va
 #	define ASSERT(expr) expr;
 #endif
 
+#define STATIC_CLASS(c)				\
+c() = delete;						\
+c(const c&) = delete;				\
+c(c&&) = delete;					\
+~c() = delete;						\
+c& operator=(const c&) = delete;	\
+c& operator=(c&&) = delete;
+
 /// <summary>
 /// Gets the element count of a static array
 /// </summary>

@@ -137,4 +137,6 @@ private:
 	static F64 lastInput;
 	static bool configureMode;
 	static std::mutex midiMutex;
+
+	STATIC_CLASS(Visualizer)
 };

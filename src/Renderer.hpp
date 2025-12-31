@@ -33,4 +33,6 @@ private:
 	static std::vector<Vector2> offsets;
 	static std::vector<Vector3> colors;
 	static std::vector<F32> textureIds;
+
+	STATIC_CLASS(Renderer)
 };

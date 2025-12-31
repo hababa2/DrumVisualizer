@@ -41,7 +41,7 @@ namespace {
 		try { return std::stoull(str, nullptr, base); }
 		catch (...) { return defaultValue; }
 	}
-} // namespace
+}
 
 Settings Visualizer::settings{};
 Layout Visualizer::layout{};
@@ -722,13 +722,13 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
 
 	U64 byteCount = message->size();
 
-#ifdef DV_DEBUG
+//#ifdef DV_DEBUG
 	for (U32 i = 0; i < byteCount; ++i)
 	{
 		std::cout << "Byte " << i << " = " << (I32)message->at(i) << ", ";
 	}
 	std::cout << "stamp = " << deltatime << std::endl;
-#endif
+//#endif
 
 	if (byteCount >= 3 && (message->at(0) == 153 || message->at(0) == 144))
 	{
