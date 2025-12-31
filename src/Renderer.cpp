@@ -32,7 +32,7 @@ const char* vertexShaderSource =
 "layout (location = 1) in vec2 texCoords;\n"
 "layout (location = 2) in vec2 offset;\n"
 "layout (location = 3) in vec3 color;\n"
-"layout (location = 4) in float textureId;\n" //Passing an integer into glsl doesn't work for some reason
+"layout (location = 4) in uint textureId;\n"
 "out vec3 fragColor;\n"
 "out vec2 fragTexCoords;\n"
 "out flat uint fragTextureId;\n"
@@ -41,23 +41,27 @@ const char* vertexShaderSource =
 "   gl_Position = vec4(position + offset, 0.0, 1.0);\n"
 "   fragColor = color;\n"
 "   fragTexCoords = texCoords;\n"
-"   fragTextureId = uint(textureId);\n"
+"   fragTextureId = textureId;\n"
 "}\0";
 
 const char* fragmentShaderSource =
 "#version 460 core\n"
+"#extension GL_ARB_bindless_texture : require\n"
+"layout(binding=0, std430) readonly buffer textureHandles {\n"
+"    sampler2D textures[];\n"
+"};\n"
 "out vec4 FragColor;\n"
 "in vec3 fragColor;\n"
 "in vec2 fragTexCoords;\n"
 "in flat uint fragTextureId;\n"
-"uniform sampler2DArray textures;\n"
 "void main()\n"
 "{\n"
-"   FragColor = texture(textures, vec3(fragTexCoords.xy, fragTextureId)) * vec4(fragColor, 1.0);\n"
+"	sampler2D tex = textures[fragTextureId];\n"
+"   FragColor = texture(tex, fragTexCoords) * vec4(fragColor, 1.0);\n"
 "}\0";
 
 U32 Renderer::vao;
-U32 Renderer::textureArray;
+U32 Renderer::textureBuffer;
 U32 Renderer::shaderProgram;
 Buffer Renderer::positionBuffer;
 Buffer Renderer::texCoordsBuffer;
@@ -67,7 +71,8 @@ Buffer Renderer::textureIdsBuffer;
 U32 Renderer::nextIndex = 0;
 std::vector<Vector2> Renderer::offsets;
 std::vector<Vector3> Renderer::colors;
-std::vector<F32> Renderer::textureIds;
+std::vector<U32> Renderer::textureIds;
+std::vector<U64> Renderer::textureHandles;
 
 bool Renderer::Initialize()
 {
@@ -83,20 +88,16 @@ bool Renderer::Initialize()
 	texCoordsBuffer.Create(1, DataType::VECTOR2, texCoords, static_cast<U32>(CountOf(texCoords) * sizeof(Vector2)), false);
 	offsetsBuffer.Create(2, DataType::VECTOR2, offsets.data(), static_cast<U32>(offsets.capacity() * sizeof(Vector2)), true);
 	colorsBuffer.Create(3, DataType::VECTOR3, colors.data(), static_cast<U32>(colors.capacity() * sizeof(Vector3)), true);
-	textureIdsBuffer.Create(4, DataType::FLOAT, textureIds.data(), static_cast<U32>(textureIds.capacity() * sizeof(F32)), true);
-
-	glGenTextures(1, &textureArray);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, textureArray);
-	glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, 256, 256, 3);
+	textureIdsBuffer.Create(4, DataType::UINT, textureIds.data(), static_cast<U32>(textureIds.capacity() * sizeof(U32)), true);
 
 	LoadTexture("assets/square.png");
 	LoadTexture("assets/circle.png");
 	LoadTexture("assets/triangle.png");
 
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glCreateBuffers(1, &textureBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, textureBuffer);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, textureHandles.size() * sizeof(U64), textureHandles.data(), GL_DYNAMIC_STORAGE_BIT);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, textureBuffer);
 
 	I32 success;
 	C8 infoLog[512];
@@ -159,6 +160,8 @@ void Renderer::Shutdown()
 
 	glDeleteProgram(shaderProgram);
 	glDeleteVertexArrays(1, &vao);
+
+	//TODO: delete textures
 }
 
 void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualizerWindow)
@@ -170,7 +173,7 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 
 	offsetsBuffer.Flush(offsets.data(), static_cast<U32>(offsets.capacity() * sizeof(Vector2)));
 	colorsBuffer.Flush(colors.data(), static_cast<U32>(colors.capacity() * sizeof(Vector3)));
-	textureIdsBuffer.Flush(textureIds.data(), static_cast<U32>(textureIds.capacity() * sizeof(F32)));
+	textureIdsBuffer.Flush(textureIds.data(), static_cast<U32>(textureIds.capacity() * sizeof(U32)));
 
 	settingsWindow.Update();
 	settingsWindow.Render();
@@ -180,7 +183,6 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 	glUseProgram(shaderProgram);
 	glUniform1i(glGetUniformLocation(shaderProgram, "textures"), 0);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, textureArray);
 	glBindVertexArray(vao);
 	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, static_cast<I32>(offsets.size()));
 
@@ -193,7 +195,7 @@ void Renderer::SpawnNote(const Vector2& position, const Vector3& color, U32 text
 {
 	offsets[nextIndex] = position;
 	colors[nextIndex] = color;
-	textureIds[nextIndex] = (F32)textureId;
+	textureIds[nextIndex] = textureId;
 
 	++nextIndex %= MaxNotes;
 }
@@ -218,8 +220,24 @@ bool Renderer::LoadTexture(const std::string& path)
 		return false;
 	}
 
-	glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, id++, x, y, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	U32 texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, x, y);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, x, y, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 	stbi_image_free(data);
+
+	U64 textureHandle = glGetTextureHandleARB(texture);
+	glMakeTextureHandleResidentARB(textureHandle);
+	textureHandles.push_back(textureHandle);
+
+	textureIds.push_back(id++);
 
 	return true;
 }

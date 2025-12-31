@@ -20,7 +20,7 @@ public:
 
 private:
 	static U32 vao;
-	static U32 textureArray;
+	static U32 textureBuffer;
 	static U32 shaderProgram;
 	static Buffer positionBuffer;
 	static Buffer texCoordsBuffer;
@@ -32,7 +32,8 @@ private:
 	static U32 nextIndex;
 	static std::vector<Vector2> offsets;
 	static std::vector<Vector3> colors;
-	static std::vector<F32> textureIds;
+	static std::vector<U32> textureIds;
+	static std::vector<U64> textureHandles; //TODO: Texture struct
 
 	STATIC_CLASS(Renderer)
 };
