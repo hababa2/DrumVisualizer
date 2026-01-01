@@ -2,18 +2,6 @@
 
 This is a program to visualize midi input specifically for Clone Hero drums, WIP more to come.
 
-## Controls
-
-**Escape** | Exit the application
-
-**F1** | Toggle configuration mode to be able to drag and resize visualizer window
-
-**F2** | Cycle scroll direction
-
-**-** | Decrease scroll speed
-
-**+** | Increase scroll speed
-
 ## Setup
 
 ### Windows
