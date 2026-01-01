@@ -14,4 +14,5 @@ out vec4 outColor;
 void main()
 {
     outColor = texture(textures[textureIndex], texcoord) * vec4(color, 1.0);
+    if(outColor.a < 0.1) { discard; }
 }

@@ -112,6 +112,7 @@ public:
 	static void KeyCallback(GLFWwindow* window, I32 key, I32 scancode, I32 action, I32 mods);
 	static void ErrorCallback(I32 error, const C8* description);
 
+	static void SetScrollDirection(ScrollDirection direction);
 	static Settings& GetSettings();
 
 private:
@@ -130,7 +131,6 @@ private:
 	static Vector3 HexToRBG(const std::string& hex);
 	static void LoadMidiProfile(const std::wstring& path);
 	static void ParseMappings(const std::string& data, NoteType type, U64 start, U64 end);
-	static void SetScrollDirection(ScrollDirection direction);
 
 	static Settings settings;
 	static Layout layout;

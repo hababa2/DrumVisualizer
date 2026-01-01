@@ -107,6 +107,7 @@ void Visualizer::Shutdown()
 #ifdef DV_DEBUG
 	std::cout << "Cleaning Up Resources..." << std::endl;
 #endif
+	UI::Shutdown();
 	Renderer::Shutdown();
 	Resources::Shutdown();
 
@@ -118,6 +119,7 @@ void Visualizer::Shutdown()
 	settingsWindow.Destroy();
 	visualizerWindow.Destroy();
 	glfwTerminate();
+
 #ifdef DV_DEBUG
 	std::cout << "Shutdown Complete" << std::endl;
 #endif
@@ -694,6 +696,8 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 	default:
 		break;
 	}
+
+	Renderer::ClearNotes();
 }
 
 Settings& Visualizer::GetSettings()
@@ -788,9 +792,6 @@ void Visualizer::KeyCallback(GLFWwindow* window, I32 key, I32 scancode,
 	{
 		switch (key)
 		{
-		case GLFW_KEY_ESCAPE: {
-			glfwSetWindowShouldClose(window, true);
-		} break;
 		case GLFW_KEY_F1: {
 #ifdef DV_DEBUG
 			std::cout << "Configure mode toggled" << std::endl;
@@ -799,35 +800,6 @@ void Visualizer::KeyCallback(GLFWwindow* window, I32 key, I32 scancode,
 
 			visualizerWindow.SetMenu(configureMode);
 			visualizerWindow.SetInteractable(configureMode);
-		} break;
-		case GLFW_KEY_F2: {
-			switch (settings.scrollDirection)
-			{
-			case ScrollDirection::Down: { SetScrollDirection(ScrollDirection::Right); } break;
-			case ScrollDirection::Right: { SetScrollDirection(ScrollDirection::Up); } break;
-			case ScrollDirection::Up: { SetScrollDirection(ScrollDirection::Left); } break;
-			case ScrollDirection::Left: { SetScrollDirection(ScrollDirection::Down); } break;
-			default: break;
-			}
-
-			Renderer::ClearNotes();
-#ifdef DV_DEBUG
-			std::cout << "Scroll direction changed to: " << (I32)settings.scrollDirection << std::endl;
-#endif
-		} break;
-		case GLFW_KEY_MINUS:
-		case GLFW_KEY_KP_SUBTRACT: {
-			settings.scrollSpeed = max(settings.scrollSpeed - 0.25f, 0.5f);
-#ifdef DV_DEBUG
-			std::cout << "Scroll speed decreased to: " << settings.scrollSpeed << std::endl;
-#endif
-		} break;
-		case GLFW_KEY_EQUAL:
-		case GLFW_KEY_KP_ADD: {
-			settings.scrollSpeed = min(settings.scrollSpeed + 0.25f, 5.0f);
-#ifdef DV_DEBUG
-			std::cout << "Scroll speed increased to: " << settings.scrollSpeed << std::endl;
-#endif
 		} break;
 		}
 	}

@@ -44,10 +44,16 @@ bool UI::Initialize(Window* settingsWindow_, Window* visualizerWindow_)
 
 void UI::Shutdown()
 {
+	ImGui::SetCurrentContext(settingsContext);
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext(settingsContext);
-	ImGui::DestroyContext(visualizerContext);
+
+	//TODO: fix this
+	//ImGui::SetCurrentContext(visualizerContext);
+	//ImGui_ImplOpenGL3_Shutdown();
+	//ImGui_ImplGlfw_Shutdown();
+	//ImGui::DestroyContext(visualizerContext);
 }
 
 void UI::Update(Window* window)
@@ -73,10 +79,27 @@ void UI::Render(Window* window)
 		if (ImGui::Begin("Settings", NULL, flags))
 		{
 			Settings& settings = Visualizer::GetSettings();
+			const char* directions[] = { "Up", "Down", "Left", "Right" };
+			static I32 direction = (I32)settings.scrollDirection;
 			const std::vector<char*>& textures = Resources::GetTextureNames();
-			static int tomId = settings.tomTexture->id;
-			static int cymbalId = settings.cymbalTexture->id;
-			static int kickId = settings.kickTexture->id;
+			static I32 tomId = settings.tomTexture->id;
+			static I32 cymbalId = settings.cymbalTexture->id;
+			static I32 kickId = settings.kickTexture->id;
+
+			ImGui::Text("Press F1 to toggle config mode to drag and resize visualizer window");
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Scroll Speed:");
+			ImGui::SameLine();
+			ImGui::SliderFloat("##ScrollSpeed", &settings.scrollSpeed, 0.25f, 5.0f, "%.2f");
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Scroll Direction:");
+			ImGui::SameLine();
+			if (ImGui::Combo("##ScrollDirection", &direction, directions, IM_COUNTOF(directions)))
+			{
+				Visualizer::SetScrollDirection((ScrollDirection)direction);
+			}
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Tom Texture:");
