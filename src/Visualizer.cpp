@@ -1,6 +1,7 @@
 #include "Visualizer.hpp"
 
 #include "Renderer.hpp"
+#include "Resources.hpp"
 
 #include "glfw\glfw3.h"
 
@@ -62,33 +63,15 @@ bool Visualizer::Initialize()
 #ifdef DV_DEBUG
 	std::cout << "=== DrumVisualizer Debug Mode ===" << std::endl;
 #endif
-	if (!InitializeGlfw())
-	{
-		Shutdown();
-		return false;
-	}
-	if (!InitializeWindows())
-	{
-		Shutdown();
-		return false;
-	}
-	if (!InitializeCH())
-	{
-		Shutdown();
-		return false;
-	}
-	if (!InitializeMidi())
-	{
-		Shutdown();
-		return false;
-	}
-	if (!Renderer::Initialize())
-	{
-		Shutdown();
-		return false;
-	}
+	if (!InitializeGlfw()) { return false; }
+	if (!InitializeWindows()) { return false; }
+	if (!InitializeCH()) { return false; }
+	if (!InitializeMidi()) { return false; }
+	if (!Resources::Initialize()) { return false; }
+	PrepareTextures();
+	if (!Renderer::Initialize()) { return false; }
 #ifdef DV_DEBUG
-	std::cout << "Initialized successfully!" << std::endl;
+	std::cout << "Initialized Successfully!" << std::endl;
 #endif
 
 	MainLoop();
@@ -125,6 +108,7 @@ void Visualizer::Shutdown()
 	std::cout << "Cleaning up resources..." << std::endl;
 #endif
 	Renderer::Shutdown();
+	Resources::Shutdown();
 
 #ifndef DV_PLATFORM_WINDOWS
 	delete midiOut;
@@ -204,7 +188,7 @@ bool Visualizer::InitializeGlfw()
 bool Visualizer::InitializeWindows()
 {
 #ifdef DV_DEBUG
-	std::cout << "Initializing windows..." << std::endl;
+	std::cout << "Initializing Windows..." << std::endl;
 #endif
 	if (!LoadConfig())
 	{
@@ -324,7 +308,7 @@ bool Visualizer::InitializeMidi()
 bool Visualizer::LoadConfig()
 {
 #ifdef DV_DEBUG
-	std::cout << "Loading configuration..." << std::endl;
+	std::cout << "Loading Configuration..." << std::endl;
 #endif
 	std::ifstream file("settings.cfg");
 	std::string data((std::istreambuf_iterator<char>(file)),
@@ -395,18 +379,16 @@ bool Visualizer::LoadConfig()
 			settings.scrollDirection =
 				(ScrollDirection)SafeStoi(value, (I32)settings.scrollDirection);
 		} break;
-		case "tomTextureId"_Hash: {
-			settings.tomTextureId =
-				SafeStoi(value, settings.tomTextureId);
+		case "tomTextureName"_Hash: {
+			settings.tomTextureName = value;
 		} break;
-		case "cymbalTextureId"_Hash: {
-			settings.cymbalTextureId =
-				SafeStoi(value, settings.cymbalTextureId);
+		case "cymbalTextureName"_Hash: {
+			settings.cymbalTextureName = value;
 		} break;
-		case "kickTextureId"_Hash: {
-			settings.kickTextureId =
-				SafeStoi(value, settings.kickTextureId);
+		case "kickTextureName"_Hash: {
+			settings.kickTextureName = value;
 		} break;
+		default: break;
 		}
 	}
 
@@ -429,12 +411,19 @@ void Visualizer::SaveConfig()
 	output << "leftyFlip=" << settings.leftyFlip << '\n';
 	output << "scrollSpeed=" << settings.scrollSpeed << '\n';
 	output << "scrollDirection=" << static_cast<U32>(settings.scrollDirection) << '\n';
-	output << "tomTextureId=" << settings.tomTextureId << '\n';
-	output << "cymbalTextureId=" << settings.cymbalTextureId << '\n';
-	output << "kickTextureId=" << settings.kickTextureId << '\n';
+	output << "tomTextureName=" << settings.tomTextureName << '\n';
+	output << "cymbalTextureName=" << settings.cymbalTextureName << '\n';
+	output << "kickTextureName=" << settings.kickTextureName << '\n';
 
 	output.flush();
 	output.close();
+}
+
+void Visualizer::PrepareTextures()
+{
+	settings.tomTexture = Resources::GetTexture(settings.tomTextureName);
+	settings.cymbalTexture = Resources::GetTexture(settings.cymbalTextureName);
+	settings.kickTexture = Resources::GetTexture(settings.kickTextureName);
 }
 
 std::wstring Visualizer::GetCloneHeroFolder()
@@ -449,7 +438,7 @@ std::wstring Visualizer::GetCloneHeroFolder()
 	documents.append(L"\\Clone Hero\\");
 
 #ifdef DV_DEBUG
-	std::wcout << "Found Clone Hero path: " << documents << std::endl;
+	std::wcout << "Found Clone Hero path: '" << documents << "'" << std::endl;
 #endif
 
 	return documents;
@@ -459,7 +448,7 @@ std::wstring Visualizer::GetCloneHeroFolder()
 void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 {
 #ifdef DV_DEBUG
-	std::cout << "Loading profiles..." << std::endl;
+	std::cout << "Loading Profiles..." << std::endl;
 #endif
 	std::ifstream file(cloneHeroPath + L"profiles.ini");
 	std::string data((std::istreambuf_iterator<char>(file)),
@@ -516,7 +505,7 @@ void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 void Visualizer::LoadColors(const std::wstring& path)
 {
 #ifdef DV_DEBUG
-	std::cout << "Loading profile colors..." << std::endl;
+	std::cout << "Loading Profile Colors..." << std::endl;
 #endif
 	std::ifstream file(path);
 	std::string data((std::istreambuf_iterator<char>(file)),
@@ -749,35 +738,35 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
 					{
 					case NoteType::Snare: {
 						Renderer::SpawnNote(layout.snareStart,
-							colorProfile.snareColor * dynamic, settings.tomTextureId);
+							colorProfile.snareColor * dynamic, settings.tomTexture);
 					} break;
 					case NoteType::Kick: {
 						Renderer::SpawnNote(layout.kickStart,
-							colorProfile.kickColor * dynamic, settings.kickTextureId);
+							colorProfile.kickColor * dynamic, settings.kickTexture);
 					} break;
 					case NoteType::Cymbal1: {
 						Renderer::SpawnNote(layout.cymbal1Start,
-							colorProfile.cymbal1Color * dynamic, settings.cymbalTextureId);
+							colorProfile.cymbal1Color * dynamic, settings.cymbalTexture);
 					} break;
 					case NoteType::Tom1: {
 						Renderer::SpawnNote(layout.tom1Start,
-							colorProfile.tom1Color * dynamic, settings.tomTextureId);
+							colorProfile.tom1Color * dynamic, settings.tomTexture);
 					} break;
 					case NoteType::Cymbal2: {
 						Renderer::SpawnNote(layout.cymbal2Start,
-							colorProfile.cymbal2Color * dynamic, settings.cymbalTextureId);
+							colorProfile.cymbal2Color * dynamic, settings.cymbalTexture);
 					} break;
 					case NoteType::Tom2: {
 						Renderer::SpawnNote(layout.tom2Start,
-							colorProfile.tom2Color * dynamic, settings.tomTextureId);
+							colorProfile.tom2Color * dynamic, settings.tomTexture);
 					} break;
 					case NoteType::Cymbal3: {
 						Renderer::SpawnNote(layout.cymbal3Start,
-							colorProfile.cymbal3Color * dynamic, settings.cymbalTextureId);
+							colorProfile.cymbal3Color * dynamic, settings.cymbalTexture);
 					} break;
 					case NoteType::Tom3: {
 						Renderer::SpawnNote(layout.tom3Start,
-							colorProfile.tom3Color * dynamic, settings.tomTextureId);
+							colorProfile.tom3Color * dynamic, settings.tomTexture);
 					} break;
 					}
 				}

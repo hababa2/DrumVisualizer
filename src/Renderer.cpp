@@ -1,9 +1,8 @@
 #include "Renderer.hpp"
 
-#include "glad\glad.h"
+#include "Resources.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "glad\glad.h"
 
 #include <iostream>
 
@@ -26,6 +25,7 @@ U32 indices[] = {
 	1, 2, 3
 };
 
+//TODO: load shaders from file
 const char* vertexShaderSource =
 "#version 460 core\n"
 "layout (location = 0) in vec2 position;\n"
@@ -68,21 +68,26 @@ Buffer Renderer::texCoordsBuffer;
 Buffer Renderer::offsetsBuffer;
 Buffer Renderer::colorsBuffer;
 Buffer Renderer::textureIdsBuffer;
+Texture* Renderer::defaultTexture;
 U32 Renderer::nextIndex = 0;
 std::vector<Vector2> Renderer::offsets;
 std::vector<Vector3> Renderer::colors;
 std::vector<U32> Renderer::textureIds;
-std::vector<U64> Renderer::textureHandles;
 
 bool Renderer::Initialize()
 {
+#ifdef DV_DEBUG
+	std::cout << "Initializing Renderer..." << std::endl;
+#endif
+
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	stbi_set_flip_vertically_on_load(true);
 
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
+
+	defaultTexture = Resources::GetTexture("square");
 
 	positionBuffer.Create(0, DataType::VECTOR2, positions, static_cast<U32>(CountOf(positions) * sizeof(Vector2)), false);
 	texCoordsBuffer.Create(1, DataType::VECTOR2, texCoords, static_cast<U32>(CountOf(texCoords) * sizeof(Vector2)), false);
@@ -90,13 +95,9 @@ bool Renderer::Initialize()
 	colorsBuffer.Create(3, DataType::VECTOR3, colors.data(), static_cast<U32>(colors.capacity() * sizeof(Vector3)), true);
 	textureIdsBuffer.Create(4, DataType::UINT, textureIds.data(), static_cast<U32>(textureIds.capacity() * sizeof(U32)), true);
 
-	LoadTexture("assets/square.png");
-	LoadTexture("assets/circle.png");
-	LoadTexture("assets/triangle.png");
-
 	glCreateBuffers(1, &textureBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, textureBuffer);
-	glBufferStorage(GL_SHADER_STORAGE_BUFFER, textureHandles.size() * sizeof(U64), textureHandles.data(), GL_DYNAMIC_STORAGE_BIT);
+	glBufferStorage(GL_SHADER_STORAGE_BUFFER, Resources::textureHandles.size() * sizeof(U64), Resources::textureHandles.data(), GL_DYNAMIC_STORAGE_BIT);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, textureBuffer);
 
 	I32 success;
@@ -160,8 +161,6 @@ void Renderer::Shutdown()
 
 	glDeleteProgram(shaderProgram);
 	glDeleteVertexArrays(1, &vao);
-
-	//TODO: delete textures
 }
 
 void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualizerWindow)
@@ -191,11 +190,13 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 	visualizerWindow.Render();
 }
 
-void Renderer::SpawnNote(const Vector2& position, const Vector3& color, U32 textureId)
+void Renderer::SpawnNote(const Vector2& position, const Vector3& color, Texture* texture)
 {
+	if (texture == nullptr) { texture = defaultTexture; }
+
 	offsets[nextIndex] = position;
 	colors[nextIndex] = color;
-	textureIds[nextIndex] = textureId;
+	textureIds[nextIndex] = texture->id;
 
 	++nextIndex %= MaxNotes;
 }
@@ -206,38 +207,4 @@ void Renderer::ClearNotes()
 	{
 		offset = { -100.0f, -100.0f };
 	}
-}
-
-bool Renderer::LoadTexture(const std::string& path)
-{
-	static I32 id = 0;
-
-	I32 x, y, comp;
-	U8* data = stbi_load(path.c_str(), &x, &y, &comp, 4);
-	if (!data)
-	{
-		std::cout << "Failed To Load Texture: " << path << std::endl;
-		return false;
-	}
-
-	U32 texture;
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, x, y);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, x, y, GL_RGBA, GL_UNSIGNED_BYTE, data);
-
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	stbi_image_free(data);
-
-	U64 textureHandle = glGetTextureHandleARB(texture);
-	glMakeTextureHandleResidentARB(textureHandle);
-	textureHandles.push_back(textureHandle);
-
-	textureIds.push_back(id++);
-
-	return true;
 }

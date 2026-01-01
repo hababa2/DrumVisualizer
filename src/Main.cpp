@@ -8,7 +8,11 @@
 int main()
 //#endif
 {
-	if (!Visualizer::Initialize()) { return -1; }
+	if (!Visualizer::Initialize())
+	{
+		Visualizer::Shutdown();
+		return -1;
+	}
 
 	return 0;
 }

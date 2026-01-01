@@ -51,6 +51,9 @@
     <ClCompile Include="src\UI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Resources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Defines.hpp">
@@ -87,6 +90,9 @@
       <Filter>Lib</Filter>
     </ClInclude>
     <ClInclude Include="src\UI.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Resources.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 
+#include "Resources.hpp"
 #include "Buffer.hpp"
 #include "Window.hpp"
 
@@ -14,9 +15,8 @@ public:
 	static void Shutdown();
 
 	static void Update(Vector2 velocity, Window& settingsWindow, Window& visualizerWindow);
-	static void SpawnNote(const Vector2& position, const Vector3& color, U32 textureId);
+	static void SpawnNote(const Vector2& position, const Vector3& color, Texture* texture);
 	static void ClearNotes();
-	static bool LoadTexture(const std::string& path);
 
 private:
 	static U32 vao;
@@ -27,13 +27,13 @@ private:
 	static Buffer offsetsBuffer;
 	static Buffer colorsBuffer;
 	static Buffer textureIdsBuffer;
+	static Texture* defaultTexture;
 
 	static constexpr U32 MaxNotes = 200;
 	static U32 nextIndex;
 	static std::vector<Vector2> offsets;
 	static std::vector<Vector3> colors;
 	static std::vector<U32> textureIds;
-	static std::vector<U64> textureHandles; //TODO: Texture struct
 
 	STATIC_CLASS(Renderer)
 };

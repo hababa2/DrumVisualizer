@@ -142,6 +142,12 @@ template<class Type, U64 Count> constexpr U64 CountOf(Type(&)[Count]) { return C
 /// <returns>The count of elements</returns>
 template<class Type, U32 Count> constexpr U32 CountOf32(Type(&)[Count]) { return Count; }
 
+/// <summary>
+/// Creates a hash for a string literal at compile-time
+/// </summary>
+/// <param name="str:">The string literal</param>
+/// <param name="length:">The length of the string</param>
+/// <returns>The hash</returns>
 static constexpr U64 Hash(const C8* str, U64 length)
 {
 	U64 hash = 5381;
@@ -150,6 +156,28 @@ static constexpr U64 Hash(const C8* str, U64 length)
 	for (i = 0; i < length; ++str, ++i)
 	{
 		hash = ((hash << 5) + hash) + (*str);
+	}
+
+	return hash;
+}
+
+/// <summary>
+/// Creates a hash for a string literal at compile-time, case insensitive
+/// </summary>
+/// <param name="str:">The string literal</param>
+/// <param name="length:">The length of the string</param>
+/// <returns>The hash</returns>
+static constexpr U64 HashCI(const C8* str, U64 length)
+{
+	U64 hash = 5381;
+	U64 i = 0;
+
+	for (i = 0; i < length; ++str, ++i)
+	{
+		C8 c = *str;
+		if (c > 64 && c < 91) { c += 32; }
+
+		hash = ((hash << 5) + hash) + c;
 	}
 
 	return hash;

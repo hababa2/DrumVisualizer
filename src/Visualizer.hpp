@@ -2,6 +2,7 @@
 
 #include "Defines.hpp"
 
+#include "Resources.hpp"
 #include "Window.hpp"
 
 #include <vector>
@@ -92,22 +93,26 @@ struct Settings
 
 	F32 scrollSpeed{ 1.0f };
 	ScrollDirection scrollDirection{ ScrollDirection::Down };
-	U32 tomTextureId{ 0 };
-	U32 cymbalTextureId{ 2 };
-	U32 kickTextureId{ 0 };
+	std::string tomTextureName{ "square" };
+	std::string cymbalTextureName{ "triangle" };
+	std::string kickTextureName{ "square" };
+
+	Texture* tomTexture{ nullptr };
+	Texture* cymbalTexture{ nullptr };
+	Texture* kickTexture{ nullptr };
 };
 
 class Visualizer
 {
 public:
 	static bool Initialize();
+	static void Shutdown();
 
 	static void MidiCallback(F64 deltatime, std::vector<U8>* message, void* userData);
 	static void KeyCallback(GLFWwindow* window, I32 key, I32 scancode, I32 action, I32 mods);
 	static void ErrorCallback(I32 error, const C8* description);
 
 private:
-	static void Shutdown();
 	static void MainLoop();
 
 	static bool InitializeGlfw();
@@ -116,6 +121,7 @@ private:
 	static bool InitializeMidi();
 	static bool LoadConfig();
 	static void SaveConfig();
+	static void PrepareTextures();
 	static std::wstring GetCloneHeroFolder();
 	static void LoadProfiles(const std::wstring& cloneHeroPath);
 	static void LoadColors(const std::wstring& path);
