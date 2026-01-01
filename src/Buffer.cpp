@@ -1,6 +1,6 @@
 #include "Buffer.hpp"
 
-#include "glad\glad.h"
+#include "GraphicsInclude.hpp"
 
 void Buffer::Create(U32 location, DataType type, void* data, U64 size, bool instance)
 {

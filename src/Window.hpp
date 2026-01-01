@@ -22,7 +22,7 @@ struct WindowConfig
 
 struct Window
 {
-	void Create(WindowConfig config = {});
+	void Create(WindowConfig config = {}, Window* share = nullptr);
 	void Destroy();
 
 	void Update();

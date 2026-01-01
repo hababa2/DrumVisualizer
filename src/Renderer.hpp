@@ -35,5 +35,9 @@ private:
 	static std::vector<Vector3> colors;
 	static std::vector<U32> textureIds;
 
+	static Vector2 positions[4];
+	static Vector2 texCoords[4];
+	static U32 indices[6];
+
 	STATIC_CLASS(Renderer)
 };

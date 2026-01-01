@@ -1,9 +1,10 @@
 #include "Visualizer.hpp"
 
 #include "Renderer.hpp"
+#include "UI.hpp"
 #include "Resources.hpp"
 
-#include "glfw\glfw3.h"
+#include "GraphicsInclude.hpp"
 
 #define RTMIDI_DO_NOT_ENSURE_UNIQUE_PORTNAMES
 #define RTMIDI_DO_NOT_ENABLE_WORKAROUND_UWP_WRONG_TIMESTAMPS
@@ -17,32 +18,6 @@
 #include "shlobj_core.h"
 #include <objbase.h>
 #endif
-
-namespace {
-	I32 SafeStoi(const std::string& str, I32 defaultValue = 0)
-	{
-		try { return std::stoi(str); }
-		catch (...) { return defaultValue; }
-	}
-
-	F32 SafeStof(const std::string& str, F32 defaultValue = 0.0f)
-	{
-		try { return std::stof(str); }
-		catch (...) { return defaultValue; }
-	}
-
-	F64 SafeStod(const std::string& str, F64 defaultValue = 0.0)
-	{
-		try { return std::stod(str); }
-		catch (...) { return defaultValue; }
-	}
-
-	U64 SafeStoull(const std::string& str, int base = 10, U64 defaultValue = 0)
-	{
-		try { return std::stoull(str, nullptr, base); }
-		catch (...) { return defaultValue; }
-	}
-}
 
 Settings Visualizer::settings{};
 Layout Visualizer::layout{};
@@ -58,6 +33,30 @@ F64 Visualizer::lastInput = 0.0;
 bool Visualizer::configureMode = false;
 std::mutex Visualizer::midiMutex;
 
+I32 SafeStoi(const std::string& str, I32 defaultValue = 0)
+{
+	try { return std::stoi(str); }
+	catch (...) { return defaultValue; }
+}
+
+F32 SafeStof(const std::string& str, F32 defaultValue = 0.0f)
+{
+	try { return std::stof(str); }
+	catch (...) { return defaultValue; }
+}
+
+F64 SafeStod(const std::string& str, F64 defaultValue = 0.0)
+{
+	try { return std::stod(str); }
+	catch (...) { return defaultValue; }
+}
+
+U64 SafeStoull(const std::string& str, int base = 10, U64 defaultValue = 0)
+{
+	try { return std::stoull(str, nullptr, base); }
+	catch (...) { return defaultValue; }
+}
+
 bool Visualizer::Initialize()
 {
 #ifdef DV_DEBUG
@@ -70,6 +69,7 @@ bool Visualizer::Initialize()
 	if (!Resources::Initialize()) { return false; }
 	PrepareTextures();
 	if (!Renderer::Initialize()) { return false; }
+	if (!UI::Initialize(&settingsWindow, &visualizerWindow)) { return false; }
 #ifdef DV_DEBUG
 	std::cout << "Initialized Successfully!" << std::endl;
 #endif
@@ -83,7 +83,7 @@ bool Visualizer::Initialize()
 void Visualizer::Shutdown()
 {
 #ifdef DV_DEBUG
-	std::cout << std::endl << "=== Shutting down ===" << std::endl;
+	std::cout << std::endl << "=== Shutting Down ===" << std::endl;
 #endif
 	WindowConfig config = settingsWindow.Config();
 
@@ -100,12 +100,12 @@ void Visualizer::Shutdown()
 	settings.visualizerWindowHeight = config.height;
 
 #ifdef DV_DEBUG
-	std::cout << "Saving configuration..." << std::endl;
+	std::cout << "Saving Configuration..." << std::endl;
 #endif
 	SaveConfig();
 
 #ifdef DV_DEBUG
-	std::cout << "Cleaning up resources..." << std::endl;
+	std::cout << "Cleaning Up Resources..." << std::endl;
 #endif
 	Renderer::Shutdown();
 	Resources::Shutdown();
@@ -119,7 +119,7 @@ void Visualizer::Shutdown()
 	visualizerWindow.Destroy();
 	glfwTerminate();
 #ifdef DV_DEBUG
-	std::cout << "Shutdown complete" << std::endl;
+	std::cout << "Shutdown Complete" << std::endl;
 #endif
 }
 
@@ -208,6 +208,11 @@ bool Visualizer::InitializeWindows()
 
 	WindowConfig config{};
 	config.name = "Drum Visualizer Settings";
+	config.transparent = false;
+	config.floating = false;
+	config.interactable = true;
+	config.menu = true;
+	config.clearColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 	config.x = settings.settingWindowX;
 	config.y = settings.settingWindowY;
 	config.width = settings.settingWindowWidth;
@@ -227,7 +232,7 @@ bool Visualizer::InitializeWindows()
 	config.width = settings.visualizerWindowWidth;
 	config.height = settings.visualizerWindowHeight;
 
-	visualizerWindow.Create(config);
+	visualizerWindow.Create(config, &settingsWindow);
 	glfwSetKeyCallback(visualizerWindow, KeyCallback);
 
 	return true;
@@ -310,14 +315,9 @@ bool Visualizer::LoadConfig()
 #ifdef DV_DEBUG
 	std::cout << "Loading Configuration..." << std::endl;
 #endif
-	std::ifstream file("settings.cfg");
-	std::string data((std::istreambuf_iterator<char>(file)),
-		(std::istreambuf_iterator<char>()));
+	std::string data = Resources::ReadFile("settings.cfg");
 
-	if (!file.is_open() || data.empty())
-	{
-		return false;
-	}
+	if (data.empty()) { return false; }
 
 	std::string name;
 	std::string value;
@@ -390,6 +390,8 @@ bool Visualizer::LoadConfig()
 		} break;
 		default: break;
 		}
+
+		if (i == 0) { break; }
 	}
 
 	return true;
@@ -450,11 +452,9 @@ void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 #ifdef DV_DEBUG
 	std::cout << "Loading Profiles..." << std::endl;
 #endif
-	std::ifstream file(cloneHeroPath + L"profiles.ini");
-	std::string data((std::istreambuf_iterator<char>(file)),
-		(std::istreambuf_iterator<char>()));
+	std::string data = Resources::ReadFile(cloneHeroPath + L"profiles.ini");
 
-	if (!file.is_open() || data.empty())
+	if (data.empty())
 	{
 		std::cout << "Failed to open profiles.ini, using default profile" << std::endl;
 		profiles.push_back({ "Guest", "DefaultColors", 100, false });
@@ -507,11 +507,9 @@ void Visualizer::LoadColors(const std::wstring& path)
 #ifdef DV_DEBUG
 	std::cout << "Loading Profile Colors..." << std::endl;
 #endif
-	std::ifstream file(path);
-	std::string data((std::istreambuf_iterator<char>(file)),
-		(std::istreambuf_iterator<char>()));
+	std::string data = Resources::ReadFile(path);
 
-	if (!file.is_open() || data.empty())
+	if (data.empty())
 	{
 		std::cout << "Failed to open profile colors, using default colors" << std::endl;
 		return;
@@ -592,11 +590,9 @@ Vector3 Visualizer::HexToRBG(const std::string& hex)
 
 void Visualizer::LoadMidiProfile(const std::wstring& path)
 {
-	std::ifstream file(path);
-	std::string data((std::istreambuf_iterator<char>(file)),
-		(std::istreambuf_iterator<char>()));
+	std::string data = Resources::ReadFile(path);
 
-	if (!file.is_open() || data.empty())
+	if (data.empty())
 	{
 		std::wcout << "Failed to open MIDI profile " << path << ", shutting down" << std::endl;
 		return;
@@ -698,6 +694,11 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 	default:
 		break;
 	}
+}
+
+Settings& Visualizer::GetSettings()
+{
+	return settings;
 }
 
 void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,

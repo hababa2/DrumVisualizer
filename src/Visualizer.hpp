@@ -112,6 +112,8 @@ public:
 	static void KeyCallback(GLFWwindow* window, I32 key, I32 scancode, I32 action, I32 mods);
 	static void ErrorCallback(I32 error, const C8* description);
 
+	static Settings& GetSettings();
+
 private:
 	static void MainLoop();
 

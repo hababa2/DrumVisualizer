@@ -134,7 +134,7 @@
       <PreprocessorDefinitions>_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)lib/include;$(SolutionDir)src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)lib/include;$(SolutionDir)src;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,6 +144,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="lib\include\glad\glad.c" />
+    <ClCompile Include="lib\include\imgui\imgui.cpp" />
+    <ClCompile Include="lib\include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="lib\include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="lib\include\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="lib\include\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="lib\include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="lib\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="lib\include\rtmidi\RtMidi.cpp" />
     <ClCompile Include="src\Buffer.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -157,11 +164,21 @@
     <ClInclude Include="lib\include\glad\glad.h" />
     <ClInclude Include="lib\include\glfw\glfw3.h" />
     <ClInclude Include="lib\include\glfw\glfw3native.h" />
+    <ClInclude Include="lib\include\imgui\imconfig.h" />
+    <ClInclude Include="lib\include\imgui\imgui.h" />
+    <ClInclude Include="lib\include\imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="lib\include\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="lib\include\imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="lib\include\imgui\imgui_internal.h" />
+    <ClInclude Include="lib\include\imgui\imstb_rectpack.h" />
+    <ClInclude Include="lib\include\imgui\imstb_textedit.h" />
+    <ClInclude Include="lib\include\imgui\imstb_truetype.h" />
     <ClInclude Include="lib\include\KHR\khrplatform.h" />
     <ClInclude Include="lib\include\rtmidi\RtMidi.h" />
     <ClInclude Include="lib\include\stb_image.h" />
     <ClInclude Include="src\Buffer.hpp" />
     <ClInclude Include="src\Defines.hpp" />
+    <ClInclude Include="src\GraphicsInclude.hpp" />
     <ClInclude Include="src\Renderer.hpp" />
     <ClInclude Include="src\Resources.hpp" />
     <ClInclude Include="src\UI.hpp" />

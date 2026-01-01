@@ -1,64 +1,30 @@
 #include "Renderer.hpp"
 
+#include "UI.hpp"
 #include "Resources.hpp"
 
-#include "glad\glad.h"
+#include "GraphicsInclude.hpp"
 
 #include <iostream>
 
-Vector2 positions[] = {
+Vector2 Renderer::positions[4] = {
 	{  0.05f,  0.025f },
 	{  0.05f, -0.025f },
 	{ -0.05f, -0.025f },
 	{ -0.05f,  0.025f }
 };
 
-Vector2 texCoords[] = {
+Vector2 Renderer::texCoords[4] = {
 	{ 1.0f, 1.0f },
 	{ 1.0f, 0.0f },
 	{ 0.0f, 0.0f },
 	{ 0.0f, 1.0f }
 };
 
-U32 indices[] = {
+U32 Renderer::indices[6] = {
 	0, 1, 3,
 	1, 2, 3
 };
-
-//TODO: load shaders from file
-const char* vertexShaderSource =
-"#version 460 core\n"
-"layout (location = 0) in vec2 position;\n"
-"layout (location = 1) in vec2 texCoords;\n"
-"layout (location = 2) in vec2 offset;\n"
-"layout (location = 3) in vec3 color;\n"
-"layout (location = 4) in uint textureId;\n"
-"out vec3 fragColor;\n"
-"out vec2 fragTexCoords;\n"
-"out flat uint fragTextureId;\n"
-"void main()\n"
-"{\n"
-"   gl_Position = vec4(position + offset, 0.0, 1.0);\n"
-"   fragColor = color;\n"
-"   fragTexCoords = texCoords;\n"
-"   fragTextureId = textureId;\n"
-"}\0";
-
-const char* fragmentShaderSource =
-"#version 460 core\n"
-"#extension GL_ARB_bindless_texture : require\n"
-"layout(binding=0, std430) readonly buffer textureHandles {\n"
-"    sampler2D textures[];\n"
-"};\n"
-"out vec4 FragColor;\n"
-"in vec3 fragColor;\n"
-"in vec2 fragTexCoords;\n"
-"in flat uint fragTextureId;\n"
-"void main()\n"
-"{\n"
-"	sampler2D tex = textures[fragTextureId];\n"
-"   FragColor = texture(tex, fragTexCoords) * vec4(fragColor, 1.0);\n"
-"}\0";
 
 U32 Renderer::vao;
 U32 Renderer::textureBuffer;
@@ -104,6 +70,8 @@ bool Renderer::Initialize()
 	C8 infoLog[512];
 
 	U32 vertexShader;
+	std::string vertexShaderSourceString = Resources::ReadFile("assets/sprite.vert");
+	const C8* vertexShaderSource = vertexShaderSourceString.c_str();
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
@@ -116,6 +84,8 @@ bool Renderer::Initialize()
 	}
 
 	U32 fragmentShader;
+	std::string fragmentShaderSourceString = Resources::ReadFile("assets/sprite.frag");
+	const C8* fragmentShaderSource = fragmentShaderSourceString.c_str();
 	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
 	glCompileShader(fragmentShader);
@@ -175,18 +145,23 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 	textureIdsBuffer.Flush(textureIds.data(), static_cast<U32>(textureIds.capacity() * sizeof(U32)));
 
 	settingsWindow.Update();
-	settingsWindow.Render();
+
+	UI::Update(&settingsWindow);
+	UI::Render(&settingsWindow);
 
 	visualizerWindow.Update();
 
+	UI::Update(&visualizerWindow);
+
 	glUseProgram(shaderProgram);
-	glUniform1i(glGetUniformLocation(shaderProgram, "textures"), 0);
-	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(vao);
 	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, static_cast<I32>(offsets.size()));
-
+	
 	glBindVertexArray(0);
 
+	UI::Render(&visualizerWindow);
+
+	settingsWindow.Render();
 	visualizerWindow.Render();
 }
 

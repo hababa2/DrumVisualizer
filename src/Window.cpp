@@ -1,9 +1,8 @@
 #include "Window.hpp"
 
-#include "glad\glad.h"
-#include "glfw\glfw3.h"
+#include "GraphicsInclude.hpp"
 
-void Window::Create(WindowConfig config)
+void Window::Create(WindowConfig config, Window* share)
 {
 	this->config = config;
 
@@ -15,7 +14,7 @@ void Window::Create(WindowConfig config)
 	glfwWindowHint(GLFW_POSITION_X, config.x);
 	glfwWindowHint(GLFW_POSITION_Y, config.y);
 
-	window = glfwCreateWindow(config.width, config.height, config.name.c_str(), nullptr, nullptr);
+	window = glfwCreateWindow(config.width, config.height, config.name.c_str(), nullptr, share ? share->window : nullptr);
 
 	glfwMakeContextCurrent(window);
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
@@ -33,6 +32,7 @@ void Window::Update()
 
 	glfwMakeContextCurrent(window);
 	glViewport(0, 0, config.width, config.height);
+	glScissor(0, 0, config.width, config.height);
 	glClearColor(config.clearColor.x, config.clearColor.y, config.clearColor.z, config.clearColor.w);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }

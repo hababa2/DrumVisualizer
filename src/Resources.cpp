@@ -1,16 +1,17 @@
 #include "Resources.hpp"
 
-#include "glad\glad.h"
+#include "GraphicsInclude.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 #include <filesystem>
 #include <iostream>
+#include <fstream>
 
 std::map<std::string, Texture> Resources::textures;
-std::map<std::string, Font> Resources::fonts;
 
+std::vector<char*> Resources::textureNames;
 std::vector<U64> Resources::textureHandles;
 
 bool Resources::Initialize()
@@ -28,7 +29,7 @@ bool Resources::Initialize()
 
 void Resources::Shutdown()
 {
-	//TODO: delete textures
+
 }
 
 Texture* Resources::GetTexture(const std::string& name)
@@ -38,6 +39,29 @@ Texture* Resources::GetTexture(const std::string& name)
 	if (result == textures.end()) { return nullptr; }
 
 	return &result->second;
+}
+
+const std::vector<char*>& Resources::GetTextureNames()
+{
+	return textureNames;
+}
+
+std::string Resources::ReadFile(const std::string& path)
+{
+	std::ifstream file(path);
+	std::string data((std::istreambuf_iterator<char>(file)),
+		(std::istreambuf_iterator<char>()));
+
+	return data;
+}
+
+std::string Resources::ReadFile(const std::wstring& path)
+{
+	std::ifstream file(path);
+	std::string data((std::istreambuf_iterator<char>(file)),
+		(std::istreambuf_iterator<char>()));
+
+	return data;
 }
 
 void Resources::LoadAssets()
@@ -60,19 +84,12 @@ void Resources::LoadAssets()
 		case "tiff"_Hash: {
 			LoadTexture(entry.path().string());
 		} break;
-
-			//Font
-		case "nhf"_Hash: {
-			LoadFont(entry.path().string());
-		} break;
 		}
 	}
 }
 
 void Resources::LoadTexture(const std::string& path)
 {
-	static I32 id = 0;
-
 	I32 width, height, comp;
 	U8* data = stbi_load(path.c_str(), &width, &height, &comp, 4);
 	if (!data)
@@ -102,14 +119,14 @@ void Resources::LoadTexture(const std::string& path)
 	texture.name = GetFileName(path);
 	texture.width = width;
 	texture.height = height;
-	texture.id = id++;
+	texture.id = (U32)textures.size();
 
+	char* nameStorage = new char[texture.name.size() + 1];
+	memcpy(nameStorage, texture.name.c_str(), texture.name.size());
+	nameStorage[texture.name.size()] = '\0';
+
+	textureNames.push_back(nameStorage);
 	textures.insert({ texture.name, texture });
-}
-
-void Resources::LoadFont(const std::string& path)
-{
-
 }
 
 std::string Resources::GetFileName(const std::string& path)

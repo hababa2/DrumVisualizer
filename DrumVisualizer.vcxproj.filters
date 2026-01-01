@@ -19,11 +19,17 @@
     <Filter Include="Lib\rtmidi">
       <UniqueIdentifier>{e68d0a63-37cb-45b3-92ae-4a41ba1ef890}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Lib\glfw">
-      <UniqueIdentifier>{a63c8b6f-19fa-43f4-b4d4-6d930048b5d2}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Lib\glad">
       <UniqueIdentifier>{1357834a-6d16-46ab-9a05-639d831a177a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lib\imgui">
+      <UniqueIdentifier>{17935a9a-039c-4ea7-9ea4-44cb22516755}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lib\glfw">
+      <UniqueIdentifier>{6749f6b6-4930-40ea-9013-7d8241ac532d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lib\KHR">
+      <UniqueIdentifier>{dd79d611-d04a-4d1e-89aa-876f27d3fd28}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -54,25 +60,31 @@
     <ClCompile Include="src\Resources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="lib\include\imgui\imgui.cpp">
+      <Filter>Lib\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\include\imgui\imgui_demo.cpp">
+      <Filter>Lib\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\include\imgui\imgui_draw.cpp">
+      <Filter>Lib\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\include\imgui\imgui_tables.cpp">
+      <Filter>Lib\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\include\imgui\imgui_widgets.cpp">
+      <Filter>Lib\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\include\imgui\imgui_impl_glfw.cpp">
+      <Filter>Lib\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\include\imgui\imgui_impl_opengl3.cpp">
+      <Filter>Lib\imgui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Defines.hpp">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\include\rtmidi\RtMidi.h">
-      <Filter>Lib\rtmidi</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\include\glfw\glfw3.h">
-      <Filter>Lib\glfw</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\include\glfw\glfw3native.h">
-      <Filter>Lib\glfw</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\include\KHR\khrplatform.h">
-      <Filter>Lib\glad</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\include\glad\glad.h">
-      <Filter>Lib\glad</Filter>
     </ClInclude>
     <ClInclude Include="src\Renderer.hpp">
       <Filter>Source Files</Filter>
@@ -86,14 +98,59 @@
     <ClInclude Include="src\Visualizer.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="lib\include\stb_image.h">
-      <Filter>Lib</Filter>
-    </ClInclude>
     <ClInclude Include="src\UI.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Resources.hpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\imgui\imgui.h">
+      <Filter>Lib\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\imgui\imgui_impl_glfw.h">
+      <Filter>Lib\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\imgui\imgui_impl_opengl3.h">
+      <Filter>Lib\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\imgui\imgui_internal.h">
+      <Filter>Lib\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\imgui\imstb_rectpack.h">
+      <Filter>Lib\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\imgui\imstb_textedit.h">
+      <Filter>Lib\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\imgui\imstb_truetype.h">
+      <Filter>Lib\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\imgui\imconfig.h">
+      <Filter>Lib\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\glad\glad.h">
+      <Filter>Lib\glad</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\glfw\glfw3.h">
+      <Filter>Lib\glfw</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\glfw\glfw3native.h">
+      <Filter>Lib\glfw</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\rtmidi\RtMidi.h">
+      <Filter>Lib\rtmidi</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\stb_image.h">
+      <Filter>Lib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GraphicsInclude.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\KHR\khrplatform.h">
+      <Filter>Lib\KHR</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\imgui\imgui_impl_opengl3_loader.h">
+      <Filter>Lib\imgui</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
