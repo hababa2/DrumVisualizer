@@ -381,6 +381,12 @@ bool Visualizer::LoadConfig()
 			settings.scrollDirection =
 				(ScrollDirection)SafeStoi(value, (I32)settings.scrollDirection);
 		} break;
+		case "noteWidth"_Hash: {
+			settings.noteWidth = SafeStof(value, settings.noteWidth);
+		} break;
+		case "noteHeight"_Hash: {
+			settings.noteHeight = SafeStof(value, settings.noteHeight);
+		} break;
 		case "tomTextureName"_Hash: {
 			settings.tomTextureName = value;
 		} break;
@@ -415,6 +421,8 @@ void Visualizer::SaveConfig()
 	output << "leftyFlip=" << settings.leftyFlip << '\n';
 	output << "scrollSpeed=" << settings.scrollSpeed << '\n';
 	output << "scrollDirection=" << static_cast<U32>(settings.scrollDirection) << '\n';
+	output << "noteWidth=" << settings.noteWidth << '\n';
+	output << "noteHeight=" << settings.noteHeight << '\n';
 	output << "tomTextureName=" << settings.tomTextureName << '\n';
 	output << "cymbalTextureName=" << settings.cymbalTextureName << '\n';
 	output << "kickTextureName=" << settings.kickTextureName << '\n';
@@ -654,44 +662,44 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 	switch (settings.scrollDirection)
 	{
 	case ScrollDirection::Down: {
-		layout.snareStart = { -0.35f, 1.0f };
-		layout.kickStart = { -0.25f, 1.0f };
-		layout.cymbal1Start = { -0.15f, 1.0f };
-		layout.tom1Start = { -0.05f, 1.0f };
-		layout.cymbal2Start = { 0.05f, 1.0f };
-		layout.tom2Start = { 0.15f, 1.0f };
-		layout.cymbal3Start = { 0.25f, 1.0f };
-		layout.tom3Start = { 0.35f, 1.0f };
+		layout.snareStart = { -0.875f, 1.0f };
+		layout.kickStart = { -0.625f, 1.0f };
+		layout.cymbal1Start = { -0.375f, 1.0f };
+		layout.tom1Start = { -0.125f, 1.0f };
+		layout.cymbal2Start = { 0.125f, 1.0f };
+		layout.tom2Start = { 0.375f, 1.0f };
+		layout.cymbal3Start = { 0.625f, 1.0f };
+		layout.tom3Start = { 0.875f, 1.0f };
 	} break;
 	case ScrollDirection::Right: {
-		layout.snareStart = { -1.0f, -0.35f };
-		layout.kickStart = { -1.0f, -0.25f };
-		layout.cymbal1Start = { -1.0f, -0.15f };
-		layout.tom1Start = { -1.0f, -0.05f };
-		layout.cymbal2Start = { -1.0f, 0.05f };
-		layout.tom2Start = { -1.0f, 0.15f };
-		layout.cymbal3Start = { -1.0f, 0.25f };
-		layout.tom3Start = { -1.0f, 0.35f };
+		layout.snareStart = { -1.0f, -0.875f };
+		layout.kickStart = { -1.0f, -0.625f };
+		layout.cymbal1Start = { -1.0f, -0.375f };
+		layout.tom1Start = { -1.0f, -0.125f };
+		layout.cymbal2Start = { -1.0f, 0.125f };
+		layout.tom2Start = { -1.0f, 0.375f };
+		layout.cymbal3Start = { -1.0f, 0.625f };
+		layout.tom3Start = { -1.0f, 0.875f };
 	} break;
 	case ScrollDirection::Up: {
-		layout.snareStart = { -0.35f, -1.0f };
-		layout.kickStart = { -0.25f, -1.0f };
-		layout.cymbal1Start = { -0.15f, -1.0f };
-		layout.tom1Start = { -0.05f, -1.0f };
-		layout.cymbal2Start = { 0.05f, -1.0f };
-		layout.tom2Start = { 0.15f, -1.0f };
-		layout.cymbal3Start = { 0.25f, -1.0f };
-		layout.tom3Start = { 0.35f, -1.0f };
+		layout.snareStart = { -0.875f, -1.0f };
+		layout.kickStart = { -0.625f, -1.0f };
+		layout.cymbal1Start = { -0.375f, -1.0f };
+		layout.tom1Start = { -0.125f, -1.0f };
+		layout.cymbal2Start = { 0.125f, -1.0f };
+		layout.tom2Start = { 0.375f, -1.0f };
+		layout.cymbal3Start = { 0.625f, -1.0f };
+		layout.tom3Start = { 0.875f, -1.0f };
 	} break;
 	case ScrollDirection::Left: {
-		layout.snareStart = { 1.0f, -0.35f };
-		layout.kickStart = { 1.0f, -0.25f };
-		layout.cymbal1Start = { 1.0f, -0.15f };
-		layout.tom1Start = { 1.0f, -0.05f };
-		layout.cymbal2Start = { 1.0f, 0.05f };
-		layout.tom2Start = { 1.0f, 0.15f };
-		layout.cymbal3Start = { 1.0f, 0.25f };
-		layout.tom3Start = { 1.0f, 0.35f };
+		layout.snareStart = { 1.0f, -0.875f };
+		layout.kickStart = { 1.0f, -0.625f };
+		layout.cymbal1Start = { 1.0f, -0.375f };
+		layout.tom1Start = { 1.0f, -0.125f };
+		layout.cymbal2Start = { 1.0f, 0.125f };
+		layout.tom2Start = { 1.0f, 0.375f };
+		layout.cymbal3Start = { 1.0f, 0.625f };
+		layout.tom3Start = { 1.0f, 0.875f };
 	} break;
 	default:
 		break;
@@ -716,13 +724,13 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
 
 	U64 byteCount = message->size();
 
-//#ifdef DV_DEBUG
+	//#ifdef DV_DEBUG
 	for (U32 i = 0; i < byteCount; ++i)
 	{
 		std::cout << "Byte " << i << " = " << (I32)message->at(i) << ", ";
 	}
 	std::cout << "stamp = " << deltatime << std::endl;
-//#endif
+	//#endif
 
 	if (byteCount >= 3 && (message->at(0) == 153 || message->at(0) == 144))
 	{

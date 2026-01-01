@@ -84,7 +84,7 @@ struct Settings
 
 	I32 visualizerWindowX{ 700 };
 	I32 visualizerWindowY{ 100 };
-	I32 visualizerWindowWidth{ 600 };
+	I32 visualizerWindowWidth{ 350 };
 	I32 visualizerWindowHeight{ 800 };
 
 	U32 profileId{ U32_MAX };
@@ -93,6 +93,8 @@ struct Settings
 
 	F32 scrollSpeed{ 1.0f };
 	ScrollDirection scrollDirection{ ScrollDirection::Down };
+	F32 noteWidth{ 0.1f };
+	F32 noteHeight{ 0.025f };
 	std::string tomTextureName{ "square" };
 	std::string cymbalTextureName{ "triangle" };
 	std::string kickTextureName{ "square" };

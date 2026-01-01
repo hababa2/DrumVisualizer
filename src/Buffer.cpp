@@ -39,5 +39,5 @@ void Buffer::Flush(void* data, U64 size)
 	this->size = size;
 
 	glBindBuffer(GL_ARRAY_BUFFER, id);
-	glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, size, data, instance ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 }

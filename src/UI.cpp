@@ -69,6 +69,7 @@ void UI::Update(Window* window)
 void UI::Render(Window* window)
 {
 	static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+	static Settings& settings = Visualizer::GetSettings();
 
 	if (window == settingsWindow)
 	{
@@ -78,10 +79,9 @@ void UI::Render(Window* window)
 
 		if (ImGui::Begin("Settings", NULL, flags))
 		{
-			Settings& settings = Visualizer::GetSettings();
-			const char* directions[] = { "Up", "Down", "Left", "Right" };
+			static const char* directions[] = { "Up", "Down", "Left", "Right" };
+			static const std::vector<char*>& textures = Resources::GetTextureNames();
 			static I32 direction = (I32)settings.scrollDirection;
-			const std::vector<char*>& textures = Resources::GetTextureNames();
 			static I32 tomId = settings.tomTexture->id;
 			static I32 cymbalId = settings.cymbalTexture->id;
 			static I32 kickId = settings.kickTexture->id;
@@ -92,6 +92,16 @@ void UI::Render(Window* window)
 			ImGui::Text("Scroll Speed:");
 			ImGui::SameLine();
 			ImGui::SliderFloat("##ScrollSpeed", &settings.scrollSpeed, 0.25f, 5.0f, "%.2f");
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Note Width:");
+			ImGui::SameLine();
+			ImGui::SliderFloat("##NoteWidth", &settings.noteWidth, 0.01f, 0.125f, "%.3f");
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Note Height:");
+			ImGui::SameLine();
+			ImGui::SliderFloat("##NoteHeight", &settings.noteHeight, 0.01f, 0.125f, "%.3f");
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Scroll Direction:");
@@ -128,14 +138,16 @@ void UI::Render(Window* window)
 				settings.kickTexture = Resources::GetTexture(settings.kickTextureName);
 			}
 		}
-
-		ImGui::End();
 	}
 	else
 	{
+		if (ImGui::Begin("Settings", NULL, flags))
+		{
 
+		}
 	}
 
+	ImGui::End();
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

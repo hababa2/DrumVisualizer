@@ -2,17 +2,13 @@
 
 #include "UI.hpp"
 #include "Resources.hpp"
+#include "Visualizer.hpp"
 
 #include "GraphicsInclude.hpp"
 
 #include <iostream>
 
-Vector2 Renderer::positions[4] = {
-	{  0.05f,  0.025f },
-	{  0.05f, -0.025f },
-	{ -0.05f, -0.025f },
-	{ -0.05f,  0.025f }
-};
+Vector2 Renderer::positions[4] = {};
 
 Vector2 Renderer::texCoords[4] = {
 	{ 1.0f, 1.0f },
@@ -135,6 +131,36 @@ void Renderer::Shutdown()
 
 void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualizerWindow)
 {
+	Settings& settings = Visualizer::GetSettings();
+
+	switch (settings.scrollDirection)
+	{
+	case ScrollDirection::Up:
+	case ScrollDirection::Down: {
+		positions[0].x = settings.noteWidth;
+		positions[1].x = settings.noteWidth;
+		positions[2].x = -settings.noteWidth;
+		positions[3].x = -settings.noteWidth;
+		positions[0].y = settings.noteHeight;
+		positions[1].y = -settings.noteHeight;
+		positions[2].y = -settings.noteHeight;
+		positions[3].y = settings.noteHeight;
+	} break;
+	case ScrollDirection::Left:
+	case ScrollDirection::Right: {
+		positions[0].x = settings.noteHeight;
+		positions[1].x = settings.noteHeight;
+		positions[2].x = -settings.noteHeight;
+		positions[3].x = -settings.noteHeight;
+		positions[0].y = settings.noteWidth;
+		positions[1].y = -settings.noteWidth;
+		positions[2].y = -settings.noteWidth;
+		positions[3].y = settings.noteWidth;
+	} break;
+	}
+
+	positionBuffer.Flush(positions, static_cast<U32>(CountOf(positions) * sizeof(Vector2)));
+
 	for (Vector2& offset : offsets)
 	{
 		offset += velocity;
