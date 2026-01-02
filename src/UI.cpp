@@ -70,6 +70,7 @@ void UI::Render(Window* window)
 {
 	static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
 	static Settings& settings = Visualizer::GetSettings();
+	static Stats& stats = Visualizer::GetStats();
 
 	if (window == settingsWindow)
 	{
@@ -87,6 +88,19 @@ void UI::Render(Window* window)
 			static I32 kickId = settings.kickTexture->id;
 
 			ImGui::Text("Press F1 to toggle config mode to drag and resize visualizer window");
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Show Stats:");
+			ImGui::SameLine();
+			if (ImGui::Checkbox("##ShowStats", &settings.showStats))
+			{
+				Visualizer::SetScrollDirection((ScrollDirection)direction);
+			}
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Show Dynamics:");
+			ImGui::SameLine();
+			ImGui::Checkbox("##ShowDynamics", &settings.showDynamics);
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Scroll Speed:");
@@ -137,17 +151,138 @@ void UI::Render(Window* window)
 				settings.kickTextureName = textures[kickId];
 				settings.kickTexture = Resources::GetTexture(settings.kickTextureName);
 			}
+
+			if (ImGui::Button("Reset Stats"))
+			{
+				stats = {};
+			}
 		}
+
+		ImGui::End();
 	}
-	else
+	else if (settings.showStats)
 	{
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImVec2 size = viewport->Size;
+		ImVec2 pos = viewport->Pos;
+		bool horizontal = true;
+
+		switch (settings.scrollDirection)
+		{
+		case ScrollDirection::Up: {
+			pos.y = size.y - 50.0f;
+			size.y = 50.0f;
+			horizontal = true;
+		} break;
+		case ScrollDirection::Down: {
+			size.y = 50.0f;
+			horizontal = true;
+		} break;
+		case ScrollDirection::Left: {
+			pos.x = size.x - 50.0f;
+			size.x = 50.0f;
+			horizontal = false;
+		} break;
+		case ScrollDirection::Right: {
+			size.x = 50.0f;
+			horizontal = false;
+		} break;
+		}
+
+		ImGui::SetNextWindowPos(pos);
+		ImGui::SetNextWindowSize(size);
+
 		if (ImGui::Begin("Settings", NULL, flags))
 		{
+			if (horizontal)
+			{
+				if (ImGui::BeginTable("##StatsTable", 8))
+				{
+					F32 rowHeight = ImGui::GetContentRegionAvail().y;
+					F32 lineSpacing = ImGui::GetStyle().ItemSpacing.y;
+					F32 textLineHeight = ImGui::GetTextLineHeight();
+					F32 blockHeight = settings.showDynamics ? (textLineHeight * 2) + lineSpacing : textLineHeight;
 
+					SetupColumn(stats.snareHitCount, stats.snareGhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupColumn(stats.kickHitCount, stats.kickGhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupColumn(stats.cymbal1HitCount, stats.cymbal1GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupColumn(stats.tom1HitCount, stats.tom1GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupColumn(stats.cymbal2HitCount, stats.cymbal2GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupColumn(stats.tom2HitCount, stats.tom2GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupColumn(stats.cymbal3HitCount, stats.cymbal3GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupColumn(stats.tom3HitCount, stats.tom3GhostCount, rowHeight, blockHeight, settings.showDynamics);
+
+					ImGui::EndTable();
+				}
+			}
+			else
+			{
+				if (ImGui::BeginTable("##StatsTable", 1))
+				{
+					F32 availableHeight = ImGui::GetContentRegionAvail().y;
+					F32 rowHeight = availableHeight / 8.0f;
+					F32 lineSpacing = ImGui::GetStyle().ItemSpacing.y;
+					F32 textLineHeight = ImGui::GetTextLineHeight();
+					F32 blockHeight = settings.showDynamics ? (textLineHeight * 2) + lineSpacing : textLineHeight;
+
+					SetupRow(stats.snareHitCount, stats.snareGhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupRow(stats.kickHitCount, stats.kickGhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupRow(stats.cymbal1HitCount, stats.cymbal1GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupRow(stats.tom1HitCount, stats.tom1GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupRow(stats.cymbal2HitCount, stats.cymbal2GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupRow(stats.tom2HitCount, stats.tom2GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupRow(stats.cymbal3HitCount, stats.cymbal3GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					SetupRow(stats.tom3HitCount, stats.tom3GhostCount, rowHeight, blockHeight, settings.showDynamics);
+
+					ImGui::EndTable();
+				}
+			}
 		}
+
+		ImGui::End();
 	}
 
-	ImGui::End();
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void UI::SetupColumn(U32 value1, U32 value2, F32 rowHeight, F32 blockHeight, bool showDynamics)
+{
+	ImGui::TableNextColumn();
+
+	std::string text1 = std::to_string(value1);
+	std::string text2 = std::to_string(value2);
+
+	F32 startPosY = ImGui::GetCursorPosY() + (rowHeight - blockHeight) * 0.5f;
+
+	ImGui::SetCursorPosY(startPosY);
+	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (ImGui::GetColumnWidth() - ImGui::CalcTextSize(text1.c_str()).x) * 0.5f);
+	ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), text1.c_str());
+
+	if (showDynamics)
+	{
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (ImGui::GetColumnWidth() - ImGui::CalcTextSize(text2.c_str()).x) * 0.5f);
+		ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), text2.c_str());
+	}
+}
+
+void UI::SetupRow(U32 value1, U32 value2, F32 rowHeight, F32 blockHeight, bool showDynamics)
+{
+	ImGui::TableNextRow(ImGuiTableRowFlags_None, rowHeight);
+	ImGui::TableNextColumn();
+
+	std::string text1 = std::to_string(value1);
+	std::string text2 = std::to_string(value2);
+
+	F32 startPosY = ImGui::GetCursorPosY() + (rowHeight - blockHeight) * 0.5f;
+
+	ImGui::SetCursorPosY(startPosY);
+	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (ImGui::GetColumnWidth() - ImGui::CalcTextSize(text1.c_str()).x) * 0.5f);
+	ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), text1.c_str());
+
+	if (showDynamics)
+	{
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (ImGui::GetColumnWidth() - ImGui::CalcTextSize(text2.c_str()).x) * 0.5f);
+		ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), text2.c_str());
+	}
 }

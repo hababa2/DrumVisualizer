@@ -90,6 +90,8 @@ struct Settings
 	U32 profileId{ U32_MAX };
 	U32 dynamicThreshold{ 100 };
 	bool leftyFlip{ false };
+	bool showDynamics{ true };
+	bool showStats{ true };
 
 	F32 scrollSpeed{ 1.0f };
 	ScrollDirection scrollDirection{ ScrollDirection::Down };
@@ -104,6 +106,26 @@ struct Settings
 	Texture* kickTexture{ nullptr };
 };
 
+struct Stats
+{
+	U32 snareHitCount{ 0 };
+	U32 snareGhostCount{ 0 };
+	U32 kickHitCount{ 0 };
+	U32 kickGhostCount{ 0 };
+	U32 cymbal1HitCount{ 0 };
+	U32 cymbal1GhostCount{ 0 };
+	U32 tom1HitCount{ 0 };
+	U32 tom1GhostCount{ 0 };
+	U32 cymbal2HitCount{ 0 };
+	U32 cymbal2GhostCount{ 0 };
+	U32 tom2HitCount{ 0 };
+	U32 tom2GhostCount{ 0 };
+	U32 cymbal3HitCount{ 0 };
+	U32 cymbal3GhostCount{ 0 };
+	U32 tom3HitCount{ 0 };
+	U32 tom3GhostCount{ 0 };
+};
+
 class Visualizer
 {
 public:
@@ -116,6 +138,7 @@ public:
 
 	static void SetScrollDirection(ScrollDirection direction);
 	static Settings& GetSettings();
+	static Stats& GetStats();
 
 private:
 	static void MainLoop();
@@ -135,6 +158,7 @@ private:
 	static void ParseMappings(const std::string& data, NoteType type, U64 start, U64 end);
 
 	static Settings settings;
+	static Stats stats;
 	static Layout layout;
 	static ColorProfile colorProfile;
 	static std::vector<Profile> profiles;

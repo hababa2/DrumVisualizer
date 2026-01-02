@@ -20,6 +20,7 @@
 #endif
 
 Settings Visualizer::settings{};
+Stats Visualizer::stats{};
 Layout Visualizer::layout{};
 ColorProfile Visualizer::colorProfile{};
 std::vector<Profile> Visualizer::profiles;
@@ -206,8 +207,6 @@ bool Visualizer::InitializeWindows()
 		// TODO: default visualizer size/position based on monitor
 	}
 
-	SetScrollDirection(settings.scrollDirection);
-
 	WindowConfig config{};
 	config.name = "Drum Visualizer Settings";
 	config.transparent = false;
@@ -236,6 +235,8 @@ bool Visualizer::InitializeWindows()
 
 	visualizerWindow.Create(config, &settingsWindow);
 	glfwSetKeyCallback(visualizerWindow, KeyCallback);
+
+	SetScrollDirection(settings.scrollDirection);
 
 	return true;
 }
@@ -374,6 +375,12 @@ bool Visualizer::LoadConfig()
 		case "leftyFlip"_Hash: {
 			settings.leftyFlip = SafeStoi(value, settings.leftyFlip);
 		} break;
+		case "showDynamics"_Hash: {
+			settings.showDynamics = SafeStoi(value, settings.showDynamics);
+		} break;
+		case "showStats"_Hash: {
+			settings.showStats = SafeStoi(value, settings.showStats);
+		} break;
 		case "scrollSpeed"_Hash: {
 			settings.scrollSpeed = SafeStof(value, settings.scrollSpeed);
 		} break;
@@ -419,6 +426,8 @@ void Visualizer::SaveConfig()
 	output << "profileId=" << settings.profileId << '\n';
 	output << "dynamicThreshold=" << settings.dynamicThreshold << '\n';
 	output << "leftyFlip=" << settings.leftyFlip << '\n';
+	output << "showDynamics=" << settings.showDynamics << '\n';
+	output << "showStats=" << settings.showStats << '\n';
 	output << "scrollSpeed=" << settings.scrollSpeed << '\n';
 	output << "scrollDirection=" << static_cast<U32>(settings.scrollDirection) << '\n';
 	output << "noteWidth=" << settings.noteWidth << '\n';
@@ -658,48 +667,55 @@ void Visualizer::ParseMappings(const std::string& data, NoteType type,
 void Visualizer::SetScrollDirection(ScrollDirection direction)
 {
 	settings.scrollDirection = direction;
+	I32 width, height;
+	glfwGetFramebufferSize(visualizerWindow, &width, &height);
+	F32 spawnHeight = 1.0f - settings.noteHeight;
 
 	switch (settings.scrollDirection)
 	{
 	case ScrollDirection::Down: {
-		layout.snareStart = { -0.875f, 1.0f };
-		layout.kickStart = { -0.625f, 1.0f };
-		layout.cymbal1Start = { -0.375f, 1.0f };
-		layout.tom1Start = { -0.125f, 1.0f };
-		layout.cymbal2Start = { 0.125f, 1.0f };
-		layout.tom2Start = { 0.375f, 1.0f };
-		layout.cymbal3Start = { 0.625f, 1.0f };
-		layout.tom3Start = { 0.875f, 1.0f };
+		if (settings.showStats) { spawnHeight = (height - 100.0f) / height - settings.noteHeight; }
+		layout.snareStart = { -0.875f, spawnHeight };
+		layout.kickStart = { -0.625f, spawnHeight };
+		layout.cymbal1Start = { -0.375f, spawnHeight };
+		layout.tom1Start = { -0.125f, spawnHeight };
+		layout.cymbal2Start = { 0.125f, spawnHeight };
+		layout.tom2Start = { 0.375f, spawnHeight };
+		layout.cymbal3Start = { 0.625f, spawnHeight };
+		layout.tom3Start = { 0.875f, spawnHeight };
 	} break;
 	case ScrollDirection::Right: {
-		layout.snareStart = { -1.0f, -0.875f };
-		layout.kickStart = { -1.0f, -0.625f };
-		layout.cymbal1Start = { -1.0f, -0.375f };
-		layout.tom1Start = { -1.0f, -0.125f };
-		layout.cymbal2Start = { -1.0f, 0.125f };
-		layout.tom2Start = { -1.0f, 0.375f };
-		layout.cymbal3Start = { -1.0f, 0.625f };
-		layout.tom3Start = { -1.0f, 0.875f };
+		if (settings.showStats) { spawnHeight = (width - 100.0f) / width - settings.noteHeight; }
+		layout.snareStart = { -spawnHeight, -0.875f };
+		layout.kickStart = { -spawnHeight, -0.625f };
+		layout.cymbal1Start = { -spawnHeight, -0.375f };
+		layout.tom1Start = { -spawnHeight, -0.125f };
+		layout.cymbal2Start = { -spawnHeight, 0.125f };
+		layout.tom2Start = { -spawnHeight, 0.375f };
+		layout.cymbal3Start = { -spawnHeight, 0.625f };
+		layout.tom3Start = { -spawnHeight, 0.875f };
 	} break;
 	case ScrollDirection::Up: {
-		layout.snareStart = { -0.875f, -1.0f };
-		layout.kickStart = { -0.625f, -1.0f };
-		layout.cymbal1Start = { -0.375f, -1.0f };
-		layout.tom1Start = { -0.125f, -1.0f };
-		layout.cymbal2Start = { 0.125f, -1.0f };
-		layout.tom2Start = { 0.375f, -1.0f };
-		layout.cymbal3Start = { 0.625f, -1.0f };
-		layout.tom3Start = { 0.875f, -1.0f };
+		if (settings.showStats) { spawnHeight = (height - 100.0f) / height - settings.noteHeight; }
+		layout.snareStart = { -0.875f, -spawnHeight };
+		layout.kickStart = { -0.625f, -spawnHeight };
+		layout.cymbal1Start = { -0.375f, -spawnHeight };
+		layout.tom1Start = { -0.125f, -spawnHeight };
+		layout.cymbal2Start = { 0.125f, -spawnHeight };
+		layout.tom2Start = { 0.375f, -spawnHeight };
+		layout.cymbal3Start = { 0.625f, -spawnHeight };
+		layout.tom3Start = { 0.875f, -spawnHeight };
 	} break;
 	case ScrollDirection::Left: {
-		layout.snareStart = { 1.0f, -0.875f };
-		layout.kickStart = { 1.0f, -0.625f };
-		layout.cymbal1Start = { 1.0f, -0.375f };
-		layout.tom1Start = { 1.0f, -0.125f };
-		layout.cymbal2Start = { 1.0f, 0.125f };
-		layout.tom2Start = { 1.0f, 0.375f };
-		layout.cymbal3Start = { 1.0f, 0.625f };
-		layout.tom3Start = { 1.0f, 0.875f };
+		if (settings.showStats) { spawnHeight = (width - 100.0f) / width - settings.noteHeight; }
+		layout.snareStart = { spawnHeight, -0.875f };
+		layout.kickStart = { spawnHeight, -0.625f };
+		layout.cymbal1Start = { spawnHeight, -0.375f };
+		layout.tom1Start = { spawnHeight, -0.125f };
+		layout.cymbal2Start = { spawnHeight, 0.125f };
+		layout.tom2Start = { spawnHeight, 0.375f };
+		layout.cymbal3Start = { spawnHeight, 0.625f };
+		layout.tom3Start = { spawnHeight, 0.875f };
 	} break;
 	default:
 		break;
@@ -711,6 +727,11 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 Settings& Visualizer::GetSettings()
 {
 	return settings;
+}
+
+Stats& Visualizer::GetStats()
+{
+	return stats;
 }
 
 void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
@@ -744,42 +765,51 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
 				{
 					mapping.lastHit = lastInput;
 
-					F32 dynamic =
-						message->at(2) < settings.dynamicThreshold ? 0.5f : 1.0f;
+					bool ghost = message->at(2) < settings.dynamicThreshold;
+
+					F32 dynamicMod = (ghost && settings.showDynamics) ? 0.5f : 1.0f;
 
 					switch (mapping.type)
 					{
 					case NoteType::Snare: {
-						Renderer::SpawnNote(layout.snareStart,
-							colorProfile.snareColor * dynamic, settings.tomTexture);
+						Renderer::SpawnNote(layout.snareStart, colorProfile.snareColor * dynamicMod, settings.tomTexture);
+						++stats.snareHitCount;
+						if (ghost) { ++stats.snareGhostCount; }
 					} break;
 					case NoteType::Kick: {
-						Renderer::SpawnNote(layout.kickStart,
-							colorProfile.kickColor * dynamic, settings.kickTexture);
+						Renderer::SpawnNote(layout.kickStart, colorProfile.kickColor * dynamicMod, settings.kickTexture);
+						++stats.kickHitCount;
+						if (ghost) { ++stats.kickGhostCount; }
 					} break;
 					case NoteType::Cymbal1: {
-						Renderer::SpawnNote(layout.cymbal1Start,
-							colorProfile.cymbal1Color * dynamic, settings.cymbalTexture);
+						Renderer::SpawnNote(layout.cymbal1Start, colorProfile.cymbal1Color * dynamicMod, settings.cymbalTexture);
+						++stats.cymbal1HitCount;
+						if (ghost) { ++stats.cymbal1GhostCount; }
 					} break;
 					case NoteType::Tom1: {
-						Renderer::SpawnNote(layout.tom1Start,
-							colorProfile.tom1Color * dynamic, settings.tomTexture);
+						Renderer::SpawnNote(layout.tom1Start, colorProfile.tom1Color * dynamicMod, settings.tomTexture);
+						++stats.tom1HitCount;
+						if (ghost) { ++stats.tom1GhostCount; }
 					} break;
 					case NoteType::Cymbal2: {
-						Renderer::SpawnNote(layout.cymbal2Start,
-							colorProfile.cymbal2Color * dynamic, settings.cymbalTexture);
+						Renderer::SpawnNote(layout.cymbal2Start, colorProfile.cymbal2Color * dynamicMod, settings.cymbalTexture);
+						++stats.cymbal2HitCount;
+						if (ghost) { ++stats.cymbal2GhostCount; }
 					} break;
 					case NoteType::Tom2: {
-						Renderer::SpawnNote(layout.tom2Start,
-							colorProfile.tom2Color * dynamic, settings.tomTexture);
+						Renderer::SpawnNote(layout.tom2Start, colorProfile.tom2Color * dynamicMod, settings.tomTexture);
+						++stats.tom2HitCount;
+						if (ghost) { ++stats.tom2GhostCount; }
 					} break;
 					case NoteType::Cymbal3: {
-						Renderer::SpawnNote(layout.cymbal3Start,
-							colorProfile.cymbal3Color * dynamic, settings.cymbalTexture);
+						Renderer::SpawnNote(layout.cymbal3Start, colorProfile.cymbal3Color * dynamicMod, settings.cymbalTexture);
+						++stats.cymbal3HitCount;
+						if (ghost) { ++stats.cymbal3GhostCount; }
 					} break;
 					case NoteType::Tom3: {
-						Renderer::SpawnNote(layout.tom3Start,
-							colorProfile.tom3Color * dynamic, settings.tomTexture);
+						Renderer::SpawnNote(layout.tom3Start, colorProfile.tom3Color * dynamicMod, settings.tomTexture);
+						++stats.tom3HitCount;
+						if (ghost) { ++stats.tom3GhostCount; }
 					} break;
 					}
 				}
