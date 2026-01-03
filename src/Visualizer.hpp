@@ -122,6 +122,7 @@ public:
 	static Settings& GetSettings();
 	static std::array<Stats, 8>& GetStats();
 	static std::array<NoteInfo, 8>& GetNoteInfos();
+	static std::vector<std::string>& GetPorts();
 
 private:
 	static void MainLoop();
@@ -145,6 +146,7 @@ private:
 	static std::array<Stats, 8> noteStats;
 	static ColorProfile colorProfile;
 	static std::vector<Profile> profiles;
+	static std::vector<std::string> midiPorts;
 	static std::vector<Mapping> mappings;
 	static Window settingsWindow;
 	static Window visualizerWindow;

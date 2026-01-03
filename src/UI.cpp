@@ -72,6 +72,7 @@ void UI::Render(Window* window)
 	static Settings& settings = Visualizer::GetSettings();
 	static std::array<Stats, 8>& stats = Visualizer::GetStats();
 	static std::array<NoteInfo, 8>& noteInfos = Visualizer::GetNoteInfos();
+	static std::vector<std::string>& ports = Visualizer::GetPorts();
 
 	if (window == settingsWindow)
 	{
@@ -87,6 +88,7 @@ void UI::Render(Window* window)
 			static I32 tomId = settings.tomTexture->id;
 			static I32 cymbalId = settings.cymbalTexture->id;
 			static I32 kickId = settings.kickTexture->id;
+			static I32 portId = settings.kickTexture->id;
 
 			ImGui::Text("Press F1 to toggle config mode to drag and resize visualizer window");
 
@@ -101,7 +103,11 @@ void UI::Render(Window* window)
 			ImGui::SameLine();
 			if (ImGui::Button("Reset Stats"))
 			{
-				stats = {};
+				for (Stats& s : stats)
+				{
+					s.hitCount = 0;
+					s.ghostCount = 0;
+				}
 			}
 
 			ImGui::AlignTextToFramePadding();
@@ -154,6 +160,15 @@ void UI::Render(Window* window)
 			ImGui::Text("Kick Texture:");
 			ImGui::SameLine();
 			if (ImGui::Combo("##KickTexture", &kickId, textures.data(), (I32)textures.size()))
+			{
+				settings.kickTextureName = textures[kickId];
+				settings.kickTexture = Resources::GetTexture(settings.kickTextureName);
+			}
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Midi Ports:");
+			ImGui::SameLine();
+			if (ImGui::Combo("##MidiPorts", &kickId, textures.data(), (I32)textures.size()))
 			{
 				settings.kickTextureName = textures[kickId];
 				settings.kickTexture = Resources::GetTexture(settings.kickTextureName);

@@ -24,6 +24,7 @@ std::array<NoteInfo, 8> Visualizer::noteInfos;
 std::array<Stats, 8> Visualizer::noteStats;
 ColorProfile Visualizer::colorProfile{};
 std::vector<Profile> Visualizer::profiles;
+std::vector<std::string> Visualizer::midiPorts;
 std::vector<Mapping> Visualizer::mappings;
 Window Visualizer::settingsWindow;
 Window Visualizer::visualizerWindow;
@@ -284,6 +285,7 @@ bool Visualizer::InitializeMidi()
 #ifdef DV_DEBUG
 		std::cout << "  Port " << i << ": " << midiName << std::endl;
 #endif
+		midiPorts.push_back(midiName);
 
 		if (midiName == "loopMIDI Visualizer")
 		{
@@ -780,6 +782,11 @@ std::array<Stats, 8>& Visualizer::GetStats()
 std::array<NoteInfo, 8>& Visualizer::GetNoteInfos()
 {
 	return noteInfos;
+}
+
+std::vector<std::string>& Visualizer::GetPorts()
+{
+	return midiPorts;
 }
 
 void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
