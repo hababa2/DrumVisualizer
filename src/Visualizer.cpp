@@ -20,8 +20,8 @@
 #endif
 
 Settings Visualizer::settings{};
-Stats Visualizer::stats{};
-Layout Visualizer::layout{};
+std::array<NoteInfo, 8> Visualizer::noteInfos;
+std::array<Stats, 8> Visualizer::noteStats;
 ColorProfile Visualizer::colorProfile{};
 std::vector<Profile> Visualizer::profiles;
 std::vector<Mapping> Visualizer::mappings;
@@ -255,7 +255,7 @@ bool Visualizer::InitializeCH()
 			L".ini");
 	}
 
-	LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\loopMIDI CH.yaml");
+	if (!LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\loopMIDI CH.yaml")) { return false; }
 
 	return true;
 }
@@ -276,23 +276,20 @@ bool Visualizer::InitializeMidi()
 	for (U32 i = 0; i < portCount; ++i)
 	{
 		std::string midiName = midiIn->getPortName(i);
-#ifdef DV_DEBUG
-		std::cout << "  Port " << i << ": " << midiName << std::endl;
-#endif
 		if (midiName.size() >= 2)
 		{
 			midiName = midiName.substr(0, midiName.size() - 2);
 		}
+
+#ifdef DV_DEBUG
+		std::cout << "  Port " << i << ": " << midiName << std::endl;
+#endif
 
 		if (midiName == "loopMIDI Visualizer")
 		{
 			midiIn->openPort(i, midiName);
 			foundPortName = midiName;
 			found = true;
-#ifdef DV_DEBUG
-			std::cout << "Connected to MIDI port: " << midiName << std::endl;
-#endif
-			break;
 		}
 	}
 
@@ -301,6 +298,10 @@ bool Visualizer::InitializeMidi()
 		std::cout << "Failed To Find 'loopMIDI Visualizer' Port, shutting down" << std::endl;
 		return false;
 	}
+
+#ifdef DV_DEBUG
+	std::cout << "Connected to MIDI port: " << foundPortName << std::endl;
+#endif
 
 	midiIn->setCallback(MidiCallback, nullptr);
 	midiIn->ignoreTypes(false, false, false);
@@ -403,10 +404,43 @@ bool Visualizer::LoadConfig()
 		case "kickTextureName"_Hash: {
 			settings.kickTextureName = value;
 		} break;
+		case "noteLayout"_Hash: {
+			U32 i = 0;
+			for (C8 c : value)
+			{
+				U32 index = c - '0';
+
+				switch (index)
+				{
+				case 0: { noteInfos[i] = { "Snare", index }; } break;
+				case 1: { noteInfos[i] = { "Kick", index }; } break;
+				case 2: { noteInfos[i] = { "Cymbal 1", index }; } break;
+				case 3: { noteInfos[i] = { "Tom 1", index }; } break;
+				case 4: { noteInfos[i] = { "Cymbal 2", index }; } break;
+				case 5: { noteInfos[i] = { "Tom 2", index }; } break;
+				case 6: { noteInfos[i] = { "Cymbal 3", index }; } break;
+				case 7: { noteInfos[i] = { "Tom 3", index }; } break;
+				}
+
+				++i;
+			}
+		} break;
 		default: break;
 		}
 
 		if (i == 0) { break; }
+	}
+
+	if (noteInfos[0].name.empty())
+	{
+		noteInfos[0] = { "Snare", 0 };
+		noteInfos[1] = { "Kick", 1 };
+		noteInfos[2] = { "Cymbal 1", 2 };
+		noteInfos[3] = { "Tom 1", 3 };
+		noteInfos[4] = { "Cymbal 2", 4 };
+		noteInfos[5] = { "Tom 2", 5 };
+		noteInfos[6] = { "Cymbal 3", 6 };
+		noteInfos[7] = { "Tom 3", 7 };
 	}
 
 	return true;
@@ -414,6 +448,15 @@ bool Visualizer::LoadConfig()
 
 void Visualizer::SaveConfig()
 {
+	settings.settingWindowX = max(settings.settingWindowX, 0);
+	settings.settingWindowY = max(settings.settingWindowY, 0);
+	settings.settingWindowWidth = max(settings.settingWindowWidth, 100);
+	settings.settingWindowHeight = max(settings.settingWindowHeight, 100);
+	settings.visualizerWindowX = max(settings.visualizerWindowX, 0);
+	settings.visualizerWindowY = max(settings.visualizerWindowY, 0);
+	settings.visualizerWindowWidth = max(settings.visualizerWindowWidth, 100);
+	settings.visualizerWindowHeight = max(settings.visualizerWindowHeight, 100);
+
 	std::ofstream output("settings.cfg");
 	output << "settingWindowX=" << settings.settingWindowX << '\n';
 	output << "settingWindowY=" << settings.settingWindowY << '\n';
@@ -435,6 +478,10 @@ void Visualizer::SaveConfig()
 	output << "tomTextureName=" << settings.tomTextureName << '\n';
 	output << "cymbalTextureName=" << settings.cymbalTextureName << '\n';
 	output << "kickTextureName=" << settings.kickTextureName << '\n';
+	
+	output << "noteLayout=";
+	for (NoteInfo& info : noteInfos) { output << info.index; }
+	output << '\n';
 
 	output.flush();
 	output.close();
@@ -463,6 +510,10 @@ std::wstring Visualizer::GetCloneHeroFolder()
 #endif
 
 	return documents;
+#elif DV_PLATFORM_LINUX
+	return "~/.clonehero";
+#elif DV_PLATFORM_MAC
+	return "~/Clone Hero";
 #endif
 }
 
@@ -607,14 +658,14 @@ Vector3 Visualizer::HexToRBG(const std::string& hex)
 			(rgb & BMask) / 255.0f };
 }
 
-void Visualizer::LoadMidiProfile(const std::wstring& path)
+bool Visualizer::LoadMidiProfile(const std::wstring& path)
 {
 	std::string data = Resources::ReadFile(path);
 
 	if (data.empty())
 	{
 		std::wcout << "Failed to open MIDI profile " << path << ", shutting down" << std::endl;
-		return;
+		return false;
 	}
 
 	U64 snare = data.find("Red Pad:");
@@ -635,6 +686,8 @@ void Visualizer::LoadMidiProfile(const std::wstring& path)
 	ParseMappings(data, NoteType::Cymbal1, cymbal1, cymbal2);
 	ParseMappings(data, NoteType::Cymbal2, cymbal2, cymbal3);
 	ParseMappings(data, NoteType::Cymbal3, cymbal3, start);
+
+	return true;
 }
 
 void Visualizer::ParseMappings(const std::string& data, NoteType type,
@@ -669,53 +722,43 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 	settings.scrollDirection = direction;
 	I32 width, height;
 	glfwGetFramebufferSize(visualizerWindow, &width, &height);
-	F32 spawnHeight = 1.0f - settings.noteHeight;
+	F32 spawnPosition = 1.0f - settings.noteHeight;
+	F32 layoutPosition = -0.875f;
+	F32 layoutIncrement = 0.25f;
 
 	switch (settings.scrollDirection)
 	{
 	case ScrollDirection::Down: {
-		if (settings.showStats) { spawnHeight = (height - 100.0f) / height - settings.noteHeight; }
-		layout.snareStart = { -0.875f, spawnHeight };
-		layout.kickStart = { -0.625f, spawnHeight };
-		layout.cymbal1Start = { -0.375f, spawnHeight };
-		layout.tom1Start = { -0.125f, spawnHeight };
-		layout.cymbal2Start = { 0.125f, spawnHeight };
-		layout.tom2Start = { 0.375f, spawnHeight };
-		layout.cymbal3Start = { 0.625f, spawnHeight };
-		layout.tom3Start = { 0.875f, spawnHeight };
+		if (settings.showStats) { spawnPosition = (height - 100.0f) / height - settings.noteHeight; }
+		for (Stats& s : noteStats)
+		{
+			s.spawn = { layoutPosition, spawnPosition };
+			layoutPosition += layoutIncrement;
+		}
 	} break;
 	case ScrollDirection::Right: {
-		if (settings.showStats) { spawnHeight = (width - 100.0f) / width - settings.noteHeight; }
-		layout.snareStart = { -spawnHeight, -0.875f };
-		layout.kickStart = { -spawnHeight, -0.625f };
-		layout.cymbal1Start = { -spawnHeight, -0.375f };
-		layout.tom1Start = { -spawnHeight, -0.125f };
-		layout.cymbal2Start = { -spawnHeight, 0.125f };
-		layout.tom2Start = { -spawnHeight, 0.375f };
-		layout.cymbal3Start = { -spawnHeight, 0.625f };
-		layout.tom3Start = { -spawnHeight, 0.875f };
+		if (settings.showStats) { spawnPosition = (width - 100.0f) / width - settings.noteHeight; }
+		for (Stats& s : noteStats)
+		{
+			s.spawn = { -spawnPosition, layoutPosition };
+			layoutPosition += layoutIncrement;
+		}
 	} break;
 	case ScrollDirection::Up: {
-		if (settings.showStats) { spawnHeight = (height - 100.0f) / height - settings.noteHeight; }
-		layout.snareStart = { -0.875f, -spawnHeight };
-		layout.kickStart = { -0.625f, -spawnHeight };
-		layout.cymbal1Start = { -0.375f, -spawnHeight };
-		layout.tom1Start = { -0.125f, -spawnHeight };
-		layout.cymbal2Start = { 0.125f, -spawnHeight };
-		layout.tom2Start = { 0.375f, -spawnHeight };
-		layout.cymbal3Start = { 0.625f, -spawnHeight };
-		layout.tom3Start = { 0.875f, -spawnHeight };
+		if (settings.showStats) { spawnPosition = (height - 100.0f) / height - settings.noteHeight; }
+		for (Stats& s : noteStats)
+		{
+			s.spawn = { layoutPosition, -spawnPosition };
+			layoutPosition += layoutIncrement;
+		}
 	} break;
 	case ScrollDirection::Left: {
-		if (settings.showStats) { spawnHeight = (width - 100.0f) / width - settings.noteHeight; }
-		layout.snareStart = { spawnHeight, -0.875f };
-		layout.kickStart = { spawnHeight, -0.625f };
-		layout.cymbal1Start = { spawnHeight, -0.375f };
-		layout.tom1Start = { spawnHeight, -0.125f };
-		layout.cymbal2Start = { spawnHeight, 0.125f };
-		layout.tom2Start = { spawnHeight, 0.375f };
-		layout.cymbal3Start = { spawnHeight, 0.625f };
-		layout.tom3Start = { spawnHeight, 0.875f };
+		if (settings.showStats) { spawnPosition = (width - 100.0f) / width - settings.noteHeight; }
+		for (Stats& s : noteStats)
+		{
+			s.spawn = { spawnPosition, layoutPosition };
+			layoutPosition += layoutIncrement;
+		}
 	} break;
 	default:
 		break;
@@ -729,9 +772,14 @@ Settings& Visualizer::GetSettings()
 	return settings;
 }
 
-Stats& Visualizer::GetStats()
+std::array<Stats, 8>& Visualizer::GetStats()
 {
-	return stats;
+	return noteStats;
+}
+
+std::array<NoteInfo, 8>& Visualizer::GetNoteInfos()
+{
+	return noteInfos;
 }
 
 void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
@@ -772,44 +820,52 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
 					switch (mapping.type)
 					{
 					case NoteType::Snare: {
-						Renderer::SpawnNote(layout.snareStart, colorProfile.snareColor * dynamicMod, settings.tomTexture);
-						++stats.snareHitCount;
-						if (ghost) { ++stats.snareGhostCount; }
+						Stats& stats = noteStats[0];
+						Renderer::SpawnNote(noteStats[noteInfos[0].index].spawn, colorProfile.snareColor * dynamicMod, settings.tomTexture);
+						++stats.hitCount;
+						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Kick: {
-						Renderer::SpawnNote(layout.kickStart, colorProfile.kickColor * dynamicMod, settings.kickTexture);
-						++stats.kickHitCount;
-						if (ghost) { ++stats.kickGhostCount; }
+						Stats& stats = noteStats[1];
+						Renderer::SpawnNote(noteStats[noteInfos[1].index].spawn, colorProfile.kickColor * dynamicMod, settings.kickTexture);
+						++stats.hitCount;
+						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Cymbal1: {
-						Renderer::SpawnNote(layout.cymbal1Start, colorProfile.cymbal1Color * dynamicMod, settings.cymbalTexture);
-						++stats.cymbal1HitCount;
-						if (ghost) { ++stats.cymbal1GhostCount; }
+						Stats& stats = noteStats[2];
+						Renderer::SpawnNote(noteStats[noteInfos[2].index].spawn, colorProfile.cymbal1Color * dynamicMod, settings.cymbalTexture);
+						++stats.hitCount;
+						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Tom1: {
-						Renderer::SpawnNote(layout.tom1Start, colorProfile.tom1Color * dynamicMod, settings.tomTexture);
-						++stats.tom1HitCount;
-						if (ghost) { ++stats.tom1GhostCount; }
+						Stats& stats = noteStats[3];
+						Renderer::SpawnNote(noteStats[noteInfos[3].index].spawn, colorProfile.tom1Color * dynamicMod, settings.tomTexture);
+						++stats.hitCount;
+						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Cymbal2: {
-						Renderer::SpawnNote(layout.cymbal2Start, colorProfile.cymbal2Color * dynamicMod, settings.cymbalTexture);
-						++stats.cymbal2HitCount;
-						if (ghost) { ++stats.cymbal2GhostCount; }
+						Stats& stats = noteStats[4];
+						Renderer::SpawnNote(noteStats[noteInfos[4].index].spawn, colorProfile.cymbal2Color * dynamicMod, settings.cymbalTexture);
+						++stats.hitCount;
+						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Tom2: {
-						Renderer::SpawnNote(layout.tom2Start, colorProfile.tom2Color * dynamicMod, settings.tomTexture);
-						++stats.tom2HitCount;
-						if (ghost) { ++stats.tom2GhostCount; }
+						Stats& stats = noteStats[5];
+						Renderer::SpawnNote(noteStats[noteInfos[5].index].spawn, colorProfile.tom2Color * dynamicMod, settings.tomTexture);
+						++stats.hitCount;
+						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Cymbal3: {
-						Renderer::SpawnNote(layout.cymbal3Start, colorProfile.cymbal3Color * dynamicMod, settings.cymbalTexture);
-						++stats.cymbal3HitCount;
-						if (ghost) { ++stats.cymbal3GhostCount; }
+						Stats& stats = noteStats[6];
+						Renderer::SpawnNote(noteStats[noteInfos[6].index].spawn, colorProfile.cymbal3Color * dynamicMod, settings.cymbalTexture);
+						++stats.hitCount;
+						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Tom3: {
-						Renderer::SpawnNote(layout.tom3Start, colorProfile.tom3Color * dynamicMod, settings.tomTexture);
-						++stats.tom3HitCount;
-						if (ghost) { ++stats.tom3GhostCount; }
+						Stats& stats = noteStats[7];
+						Renderer::SpawnNote(noteStats[noteInfos[7].index].spawn, colorProfile.tom3Color * dynamicMod, settings.tomTexture);
+						++stats.hitCount;
+						if (ghost) { ++stats.ghostCount; }
 					} break;
 					}
 				}

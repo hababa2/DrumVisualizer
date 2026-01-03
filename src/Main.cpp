@@ -10,7 +10,6 @@ int main()
 {
 	if (!Visualizer::Initialize())
 	{
-		Visualizer::Shutdown();
 		return -1;
 	}
 

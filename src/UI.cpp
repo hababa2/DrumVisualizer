@@ -70,7 +70,8 @@ void UI::Render(Window* window)
 {
 	static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
 	static Settings& settings = Visualizer::GetSettings();
-	static Stats& stats = Visualizer::GetStats();
+	static std::array<Stats, 8>& stats = Visualizer::GetStats();
+	static std::array<NoteInfo, 8>& noteInfos = Visualizer::GetNoteInfos();
 
 	if (window == settingsWindow)
 	{
@@ -95,6 +96,12 @@ void UI::Render(Window* window)
 			if (ImGui::Checkbox("##ShowStats", &settings.showStats))
 			{
 				Visualizer::SetScrollDirection((ScrollDirection)direction);
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Reset Stats"))
+			{
+				stats = {};
 			}
 
 			ImGui::AlignTextToFramePadding();
@@ -152,9 +159,52 @@ void UI::Render(Window* window)
 				settings.kickTexture = Resources::GetTexture(settings.kickTextureName);
 			}
 
-			if (ImGui::Button("Reset Stats"))
+			const F32 size = 70.0f;
+			const F32 spacing = 8.0f;
+
+			ImGui::Text("Rearrange Layout:");
+
+			for (U32 i = 0; i < noteInfos.size(); ++i)
 			{
-				stats = {};
+				ImGui::PushID(i);
+				if(i > 0) { ImGui::SameLine(0, spacing); }
+
+				ImGui::Button(noteInfos[i].name.c_str(), ImVec2(size, size));
+
+				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoDisableHover))
+				{
+					ImGui::SetDragDropPayload("DND_SQUARE", &i, sizeof(I32));
+
+					ImGui::Text("Moving %s", noteInfos[i].name.c_str());
+					ImGui::Button(noteInfos[i].name.c_str(), ImVec2(size, size));
+
+					ImGui::EndDragDropSource();
+				}
+
+				if (ImGui::BeginDragDropTarget())
+				{
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_SQUARE"))
+					{
+						I32 source = *(const I32*)payload->Data;
+						I32 target = i;
+
+						if (source < target)
+						{
+							std::rotate(noteInfos.begin() + source,
+								noteInfos.begin() + source + 1,
+								noteInfos.begin() + target + 1);
+						}
+						else if (source > target)
+						{
+							std::rotate(noteInfos.begin() + target,
+								noteInfos.begin() + source,
+								noteInfos.begin() + source + 1);
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+
+				ImGui::PopID();
 			}
 		}
 
@@ -203,14 +253,11 @@ void UI::Render(Window* window)
 					F32 textLineHeight = ImGui::GetTextLineHeight();
 					F32 blockHeight = settings.showDynamics ? (textLineHeight * 2) + lineSpacing : textLineHeight;
 
-					SetupColumn(stats.snareHitCount, stats.snareGhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupColumn(stats.kickHitCount, stats.kickGhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupColumn(stats.cymbal1HitCount, stats.cymbal1GhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupColumn(stats.tom1HitCount, stats.tom1GhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupColumn(stats.cymbal2HitCount, stats.cymbal2GhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupColumn(stats.tom2HitCount, stats.tom2GhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupColumn(stats.cymbal3HitCount, stats.cymbal3GhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupColumn(stats.tom3HitCount, stats.tom3GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					for (NoteInfo& note : noteInfos)
+					{
+						Stats& s = stats[note.index];
+						SetupColumn(s.hitCount, s.ghostCount, rowHeight, blockHeight, settings.showDynamics);
+					}
 
 					ImGui::EndTable();
 				}
@@ -225,14 +272,11 @@ void UI::Render(Window* window)
 					F32 textLineHeight = ImGui::GetTextLineHeight();
 					F32 blockHeight = settings.showDynamics ? (textLineHeight * 2) + lineSpacing : textLineHeight;
 
-					SetupRow(stats.snareHitCount, stats.snareGhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupRow(stats.kickHitCount, stats.kickGhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupRow(stats.cymbal1HitCount, stats.cymbal1GhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupRow(stats.tom1HitCount, stats.tom1GhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupRow(stats.cymbal2HitCount, stats.cymbal2GhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupRow(stats.tom2HitCount, stats.tom2GhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupRow(stats.cymbal3HitCount, stats.cymbal3GhostCount, rowHeight, blockHeight, settings.showDynamics);
-					SetupRow(stats.tom3HitCount, stats.tom3GhostCount, rowHeight, blockHeight, settings.showDynamics);
+					for (I32 i = noteInfos.size() - 1; i >= 0; --i)
+					{
+						Stats& s = stats[noteInfos[i].index];
+						SetupRow(s.hitCount, s.ghostCount, rowHeight, blockHeight, settings.showDynamics);
+					}
 
 					ImGui::EndTable();
 				}

@@ -6,6 +6,7 @@
 #include "Window.hpp"
 
 #include <vector>
+#include <array>
 #include <string>
 #include <mutex>
 
@@ -25,13 +26,13 @@ enum class ScrollDirection
 enum class NoteType
 {
 	Snare,
-	Tom1,
-	Tom2,
-	Tom3,
+	Kick,
 	Cymbal1,
+	Tom1,
 	Cymbal2,
+	Tom2,
 	Cymbal3,
-	Kick
+	Tom3
 };
 
 struct Mapping
@@ -51,18 +52,6 @@ struct Profile
 	bool leftyFlip;
 };
 
-struct Layout
-{
-	Vector2 snareStart{ -0.35f, 1.0f };
-	Vector2 kickStart{ -0.25f, 1.0f };
-	Vector2 cymbal1Start{ -0.15f, 1.0f };
-	Vector2 tom1Start{ -0.05f, 1.0f };
-	Vector2 cymbal2Start{ 0.05f, 1.0f };
-	Vector2 tom2Start{ 0.15f, 1.0f };
-	Vector2 cymbal3Start{ 0.25f, 1.0f };
-	Vector2 tom3Start{ 0.35f, 1.0f };
-};
-
 struct ColorProfile
 {
 	Vector3 snareColor{ 1.0f, 0.0f, 0.0f };
@@ -79,7 +68,7 @@ struct Settings
 {
 	I32 settingWindowX{ 100 };
 	I32 settingWindowY{ 100 };
-	I32 settingWindowWidth{ 600 };
+	I32 settingWindowWidth{ 630 };
 	I32 settingWindowHeight{ 800 };
 
 	I32 visualizerWindowX{ 700 };
@@ -106,24 +95,17 @@ struct Settings
 	Texture* kickTexture{ nullptr };
 };
 
+struct NoteInfo
+{
+	std::string name;
+	U32 index;
+};
+
 struct Stats
 {
-	U32 snareHitCount{ 0 };
-	U32 snareGhostCount{ 0 };
-	U32 kickHitCount{ 0 };
-	U32 kickGhostCount{ 0 };
-	U32 cymbal1HitCount{ 0 };
-	U32 cymbal1GhostCount{ 0 };
-	U32 tom1HitCount{ 0 };
-	U32 tom1GhostCount{ 0 };
-	U32 cymbal2HitCount{ 0 };
-	U32 cymbal2GhostCount{ 0 };
-	U32 tom2HitCount{ 0 };
-	U32 tom2GhostCount{ 0 };
-	U32 cymbal3HitCount{ 0 };
-	U32 cymbal3GhostCount{ 0 };
-	U32 tom3HitCount{ 0 };
-	U32 tom3GhostCount{ 0 };
+	Vector2 spawn{ 0.0f, 0.0f };
+	U32 hitCount{ 0 };
+	U32 ghostCount{ 0 };
 };
 
 class Visualizer
@@ -138,7 +120,8 @@ public:
 
 	static void SetScrollDirection(ScrollDirection direction);
 	static Settings& GetSettings();
-	static Stats& GetStats();
+	static std::array<Stats, 8>& GetStats();
+	static std::array<NoteInfo, 8>& GetNoteInfos();
 
 private:
 	static void MainLoop();
@@ -154,12 +137,12 @@ private:
 	static void LoadProfiles(const std::wstring& cloneHeroPath);
 	static void LoadColors(const std::wstring& path);
 	static Vector3 HexToRBG(const std::string& hex);
-	static void LoadMidiProfile(const std::wstring& path);
+	static bool LoadMidiProfile(const std::wstring& path);
 	static void ParseMappings(const std::string& data, NoteType type, U64 start, U64 end);
 
 	static Settings settings;
-	static Stats stats;
-	static Layout layout;
+	static std::array<NoteInfo, 8> noteInfos;
+	static std::array<Stats, 8> noteStats;
 	static ColorProfile colorProfile;
 	static std::vector<Profile> profiles;
 	static std::vector<Mapping> mappings;

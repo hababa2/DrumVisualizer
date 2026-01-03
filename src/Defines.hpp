@@ -22,30 +22,30 @@ typedef char32_t C32;			//32-bit unicode character
 
 typedef decltype(__nullptr) NullPointer; //Nullptr type
 
-static inline constexpr unsigned long long U64_MAX = 0xFFFFFFFFFFFFFFFFULL;	//Maximum value of an unsigned 64-bit integer
-static inline constexpr unsigned long long U64_MIN = 0x0000000000000000ULL;	//Minimum value of an unsigned 64-bit integer
-static inline constexpr signed long long I64_MAX = 0x7FFFFFFFFFFFFFFFLL;	//Maximum value of a signed 64-bit integer
-static inline constexpr signed long long I64_MIN = 0x8000000000000000LL;	//Minimum value of a signed 64-bit integer
-static inline constexpr unsigned int U32_MAX = 0xFFFFFFFFU;					//Maximum value of an unsigned 32-bit integer
-static inline constexpr unsigned int U32_MIN = 0x00000000U;					//Minimum value of an unsigned 32-bit integer
-static inline constexpr signed int I32_MAX = 0x7FFFFFFFI32;					//Maximum value of a signed 32-bit integer
-static inline constexpr signed int I32_MIN = 0x80000000I32;					//Minimum value of a signed 32-bit integer
-static inline constexpr unsigned long UL32_MAX = 0xFFFFFFFFUL;				//Maximum value of an unsigned 32-bit integer
-static inline constexpr unsigned long UL32_MIN = 0x00000000UL;				//Minimum value of an unsigned 32-bit integer
-static inline constexpr signed long L32_MAX = 0x7FFFFFFFL;					//Maximum value of a signed 32-bit integer
-static inline constexpr signed long L32_MIN = 0x80000000L;					//Minimum value of a signed 32-bit integer
-static inline constexpr unsigned short U16_MAX = 0xFFFFUI16;				//Maximum value of an unsigned 16-bit integer
-static inline constexpr unsigned short U16_MIN = 0x0000UI16;				//Minimum value of an unsigned 16-bit integer
-static inline constexpr signed short I16_MAX = 0x7FFFI16;					//Maximum value of a signed 16-bit integer
-static inline constexpr signed short I16_MIN = 0x8000I16;					//Minimum value of a signed 16-bit integer
-static inline constexpr unsigned char U8_MAX = 0xFFUI8;						//Maximum value of an unsigned 8-bit integer
-static inline constexpr unsigned char U8_MIN = 0x00UI8;						//Minimum value of an unsigned 8-bit integer
-static inline constexpr signed char I8_MAX = 0x7FI8;						//Maximum value of a signed 8-bit integer
-static inline constexpr signed char I8_MIN = 0x80I8;						//Minimum value of a signed 8-bit integer
-static inline constexpr float F32_MAX = 3.402823466e+38F;					//Maximum value of a 32-bit float
-static inline constexpr float F32_MIN = 1.175494351e-38F;					//Minimum value of a 32-bit float
-static inline constexpr double F64_MAX = 1.7976931348623158e+308;			//Maximum value of a 64-bit float
-static inline constexpr double F64_MIN = 2.2250738585072014e-308;			//Minimum value of a 64-bit float
+static inline constexpr unsigned long long U64_MAX = U64(0xFFFFFFFFFFFFFFFF);	//Maximum value of an unsigned 64-bit integer
+static inline constexpr unsigned long long U64_MIN = U64(0x0000000000000000);	//Minimum value of an unsigned 64-bit integer
+static inline constexpr signed long long I64_MAX = I64(0x7FFFFFFFFFFFFFFF);		//Maximum value of a signed 64-bit integer
+static inline constexpr signed long long I64_MIN = I64(0x8000000000000000);		//Minimum value of a signed 64-bit integer
+static inline constexpr unsigned int U32_MAX = U32(0xFFFFFFFF);					//Maximum value of an unsigned 32-bit integer
+static inline constexpr unsigned int U32_MIN = U32(0x00000000);					//Minimum value of an unsigned 32-bit integer
+static inline constexpr signed int I32_MAX = I32(0x7FFFFFFF);					//Maximum value of a signed 32-bit integer
+static inline constexpr signed int I32_MIN = I32(0x80000000);					//Minimum value of a signed 32-bit integer
+static inline constexpr unsigned long UL32_MAX = UL32(0xFFFFFFFF);				//Maximum value of an unsigned 32-bit integer
+static inline constexpr unsigned long UL32_MIN = UL32(0x00000000);				//Minimum value of an unsigned 32-bit integer
+static inline constexpr signed long L32_MAX = L32(0x7FFFFFFF);					//Maximum value of a signed 32-bit integer
+static inline constexpr signed long L32_MIN = L32(0x80000000);					//Minimum value of a signed 32-bit integer
+static inline constexpr unsigned short U16_MAX = U16(0xFFFF);					//Maximum value of an unsigned 16-bit integer
+static inline constexpr unsigned short U16_MIN = U16(0x0000);					//Minimum value of an unsigned 16-bit integer
+static inline constexpr signed short I16_MAX = I16(0x7FFF);						//Maximum value of a signed 16-bit integer
+static inline constexpr signed short I16_MIN = I16(0x8000);						//Minimum value of a signed 16-bit integer
+static inline constexpr unsigned char U8_MAX = U8(0xFF);						//Maximum value of an unsigned 8-bit integer
+static inline constexpr unsigned char U8_MIN = U8(0x00);						//Minimum value of an unsigned 8-bit integer
+static inline constexpr signed char I8_MAX = I8(0x7F);							//Maximum value of a signed 8-bit integer
+static inline constexpr signed char I8_MIN = I8(0x80);							//Minimum value of a signed 8-bit integer
+static inline constexpr float F32_MAX = 3.402823466e+38F;						//Maximum value of a 32-bit float
+static inline constexpr float F32_MIN = 1.175494351e-38F;						//Minimum value of a 32-bit float
+static inline constexpr double F64_MAX = 1.7976931348623158e+308;				//Maximum value of a 64-bit float
+static inline constexpr double F64_MIN = 2.2250738585072014e-308;				//Minimum value of a 64-bit float
 
 #if defined (WIN32) || defined (_WIN32) || defined (__WIN32__) || defined (__NT__)
 #	define DV_PLATFORM_WINDOWS //Defined when on a Windows operating system
@@ -91,35 +91,8 @@ static inline constexpr double F64_MIN = 2.2250738585072014e-308;			//Minimum va
 
 #ifdef _DEBUG
 #	define DV_DEBUG				// Defined if running in debug mode
-#	define ASSERTIONS_ENABLED	// Defined if assertions are enabled
 #else
 #	define DV_RELEASE			// Defined if running in release mode
-#endif
-
-#define FUNCTION_NAME __FUNCTION__	// Replaced by the name of this function ex. namespace::Class::Function<template args>
-#define FILE_NAME __FILE__			// Replaced by the name of this file ex. C:/file.cpp
-#define LINE_NUMBER __LINE__		// Replaced by the line number ex. 123
-
-#define DV_INLINE __forceinline				// Tries to force the compiler to inline a function
-#define DV_NOINLINE __declspec(noinline)	// Tries to force the compiler to not inline a function
-
-#define DV_NODISCARD [[nodiscard]]							// Issues a warning when the return value of a function isn't captured
-#define DV_NODISCARD_MSG(message) [[nodiscard(message)]]	// Issues a warning when the return value of a function isn't captured
-
-#include <intrin.h>
-
-#ifdef ASSERTIONS_ENABLED
-#	define BreakPoint __debugbreak()	// Halts the execution of the program when reached
-
-/// <summary>
-/// Halts the execution of the program if expr is false
-/// </summary>
-/// <param name="expr:">The expression to check</param>
-#	define ASSERT(expr) if (expr) { } else { BreakPoint; }
-
-#else
-#	define BreakPoint
-#	define ASSERT(expr) expr;
 #endif
 
 #define STATIC_CLASS(c)				\
