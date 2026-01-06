@@ -639,7 +639,7 @@ void Visualizer::LoadColorProfiles()
 		std::string path = entry.path().string();
 
 		std::string ext = path.substr(path.find_last_of('.') + 1);
-		I32 start = path.find_last_of('\\') + 1;
+		U64 start = path.find_last_of('\\') + 1;
 		std::string file = path.substr(start, path.find_last_of('.') - start);
 
 		if (ext == "ini")
@@ -658,7 +658,7 @@ void Visualizer::LoadMidiProfiles()
 		std::string path = entry.path().string();
 
 		std::string ext = path.substr(path.find_last_of('.') + 1);
-		I32 start = path.find_last_of('\\') + 1;
+		U64 start = path.find_last_of('\\') + 1;
 		std::string file = path.substr(start, path.find_last_of('.') - start);
 
 		if (ext == "yaml")
