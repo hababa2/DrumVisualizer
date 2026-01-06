@@ -123,7 +123,7 @@ public:
 	static void ErrorCallback(I32 error, const C8* description);
 
 	static void SetScrollDirection(ScrollDirection direction);
-	static void LoadPort(const std::string& portName);
+	static bool LoadPort(const std::string& portName);
 	static void SetProfile(I32 profileId);
 	static void SetColorProfile(const std::string& name);
 	static void SetMidiProfile(const std::string& name);

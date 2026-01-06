@@ -281,7 +281,7 @@ bool Visualizer::InitializeMidi()
 #endif
 	midiIn = new RtMidiIn();
 
-	bool found = false;
+	bool connected = false;
 	std::string foundPortName;
 	U32 portCount = midiIn->getPortCount();
 #ifdef DV_DEBUG
@@ -304,20 +304,23 @@ bool Visualizer::InitializeMidi()
 
 		if (midiName == settings.portName)
 		{
-			midiIn->openPort(i, midiName);
-			foundPortName = midiName;
-			found = true;
+			if (LoadPort(midiName)) { connected = true; }
 		}
 	}
 
-	if (!found)
+	if (!connected)
 	{
-		std::cout << "Failed To Find '" << settings.portName << "' Port!" << std::endl;
-	}
+		for (const std::string& port : midiPorts)
+		{
+			if (LoadPort(port)) { connected = true; break; }
+		}
 
-#ifdef DV_DEBUG
-	std::cout << "Connected to MIDI port: " << foundPortName << std::endl;
-#endif
+		if (!connected)
+		{
+			std::cout << "Failed To Connect To Any Available Port, Shutting Down!" << std::endl;
+			return false;
+		}
+	}
 
 	midiIn->setCallback(MidiCallback, nullptr);
 	midiIn->ignoreTypes(false, false, false);
@@ -330,7 +333,7 @@ bool Visualizer::InitializeMidi()
 	return true;
 }
 
-void Visualizer::LoadPort(const std::string& portName)
+bool Visualizer::LoadPort(const std::string& portName)
 {
 	if (midiIn->isPortOpen()) { midiIn->closePort(); }
 
@@ -347,13 +350,21 @@ void Visualizer::LoadPort(const std::string& portName)
 			try
 			{
 				midiIn->openPort(i, midiName);
+#ifdef DV_DEBUG
+				std::cout << "Connected to MIDI port: " << portName << std::endl;
+#endif
+				return true;
 			}
 			catch (...)
 			{
 				std::cout << "Failed To Open '" << portName << "' Port!" << std::endl;
+				return false;
 			}
 		}
 	}
+
+	std::cout << "Failed To Find '" << portName << "' Port!" << std::endl;
+	return false;
 }
 
 bool Visualizer::LoadConfig()
