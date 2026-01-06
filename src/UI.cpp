@@ -16,14 +16,20 @@ Settings* UI::settings;
 std::array<Stats, 8>* UI::stats;
 std::array<NoteInfo, 8>* UI::noteInfos;
 const std::vector<char*>* UI::ports;
+const std::vector<char*>* UI::profiles;
+const std::vector<char*>* UI::colorProfiles;
+const std::vector<char*>* UI::midiProfiles;
+const std::vector<char*>* UI::textures;
 
 const char* UI::directions[] = { "Up", "Down", "Left", "Right" };
-const std::vector<char*>* UI::textures;
 I32 UI::direction;
 I32 UI::tomId;
 I32 UI::cymbalId;
 I32 UI::kickId;
 I32 UI::portId;
+I32 UI::profileId;
+I32 UI::colorProfileId;
+I32 UI::midiProfileId;
 
 bool UI::Initialize(Window* settingsWindow_, Window* visualizerWindow_)
 {
@@ -58,12 +64,16 @@ bool UI::Initialize(Window* settingsWindow_, Window* visualizerWindow_)
 	stats = &Visualizer::GetStats();
 	noteInfos = &Visualizer::GetNoteInfos();
 	ports = &Visualizer::GetPorts();
+	profiles = &Visualizer::GetProfiles();
+	colorProfiles = &Visualizer::GetColorProfiles();
+	midiProfiles = &Visualizer::GetMidiProfiles();
 
 	textures = &Resources::GetTextureNames();
 	direction = (I32)settings->scrollDirection;
 	tomId = settings->tomTexture->id;
 	cymbalId = settings->cymbalTexture->id;
 	kickId = settings->kickTexture->id;
+	profileId = settings->profileId;
 
 	I32 i = 0;
 	for (const std::string& port : *ports)
@@ -71,6 +81,31 @@ bool UI::Initialize(Window* settingsWindow_, Window* visualizerWindow_)
 		if (port == settings->portName)
 		{
 			portId = i;
+			break;
+		}
+
+		++i;
+	}
+
+	i = 0;
+	for (const std::string& profile : *colorProfiles)
+	{
+		if (profile == settings->colorProfileName)
+		{
+			colorProfileId = i;
+			break;
+		}
+
+		++i;
+	}
+
+	i = 0;
+	for (const std::string& profile : *midiProfiles)
+	{
+		if (profile == settings->midiProfileName)
+		{
+			midiProfileId = i;
+			break;
 		}
 
 		++i;
@@ -195,6 +230,33 @@ void UI::Render(Window* window)
 			{
 				settings->portName = ports->at(portId);
 				Visualizer::LoadPort(settings->portName);
+			}
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("CH Profiles:");
+			ImGui::SameLine();
+			if (ImGui::Combo("##CHProfiles", &profileId, profiles->data(), (I32)profiles->size()))
+			{
+				settings->profileId = profileId;
+				Visualizer::SetProfile(profileId);
+			}
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Color Profiles:");
+			ImGui::SameLine();
+			if (ImGui::Combo("##ColorProfiles", &colorProfileId, colorProfiles->data(), (I32)colorProfiles->size()))
+			{
+				settings->colorProfileName = colorProfiles->at(colorProfileId);
+				Visualizer::SetColorProfile(colorProfiles->at(colorProfileId));
+			}
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Midi Profiles:");
+			ImGui::SameLine();
+			if (ImGui::Combo("##MidiProfiles", &midiProfileId, midiProfiles->data(), (I32)midiProfiles->size()))
+			{
+				settings->midiProfileName = midiProfiles->at(midiProfileId);
+				Visualizer::SetMidiProfile(midiProfiles->at(midiProfileId));
 			}
 
 			const F32 size = 70.0f;

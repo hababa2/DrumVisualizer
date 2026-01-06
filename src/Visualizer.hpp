@@ -46,6 +46,7 @@ struct Mapping
 
 struct Profile
 {
+	U32 id;
 	std::string name;
 	std::string colorProfile;
 	U32 dynamicThreshold{ 100 };
@@ -77,6 +78,8 @@ struct Settings
 	I32 visualizerWindowHeight{ 800 };
 
 	std::string portName{ "loopMIDI Visualizer" };
+	std::string colorProfileName{};
+	std::string midiProfileName{ "loopMIDI CH" };
 	U32 profileId{ U32_MAX };
 	U32 dynamicThreshold{ 100 };
 	bool leftyFlip{ false };
@@ -121,10 +124,16 @@ public:
 
 	static void SetScrollDirection(ScrollDirection direction);
 	static void LoadPort(const std::string& portName);
+	static void SetProfile(I32 profileId);
+	static void SetColorProfile(const std::string& name);
+	static void SetMidiProfile(const std::string& name);
 	static Settings& GetSettings();
 	static std::array<Stats, 8>& GetStats();
 	static std::array<NoteInfo, 8>& GetNoteInfos();
 	static std::vector<char*>& GetPorts();
+	static std::vector<char*>& GetProfiles();
+	static std::vector<char*>& GetColorProfiles();
+	static std::vector<char*>& GetMidiProfiles();
 
 private:
 	static void MainLoop();
@@ -137,17 +146,23 @@ private:
 	static void SaveConfig();
 	static void PrepareTextures();
 	static std::wstring GetCloneHeroFolder();
-	static void LoadProfiles(const std::wstring& cloneHeroPath);
+	static void LoadProfiles();
+	static void LoadColorProfiles();
+	static void LoadMidiProfiles();
 	static void LoadColors(const std::wstring& path);
 	static Vector3 HexToRBG(const std::string& hex);
 	static bool LoadMidiProfile(const std::wstring& path);
 	static void ParseMappings(const std::string& data, NoteType type, U64 start, U64 end);
 
 	static Settings settings;
+	static std::wstring cloneHeroFolder;
 	static std::array<NoteInfo, 8> noteInfos;
 	static std::array<Stats, 8> noteStats;
 	static ColorProfile colorProfile;
 	static std::vector<Profile> profiles;
+	static std::vector<char*> profileNames;
+	static std::vector<char*> colorProfileNames;
+	static std::vector<char*> midiProfileNames;
 	static std::vector<char*> midiPorts;
 	static std::vector<Mapping> mappings;
 	static Window settingsWindow;

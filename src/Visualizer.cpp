@@ -11,6 +11,7 @@
 #include "rtmidi\RtMidi.h"
 
 #include <codecvt>
+#include <filesystem>
 #include <fstream>
 #include <mutex>
 
@@ -20,10 +21,14 @@
 #endif
 
 Settings Visualizer::settings{};
+std::wstring Visualizer::cloneHeroFolder;
 std::array<NoteInfo, 8> Visualizer::noteInfos;
 std::array<Stats, 8> Visualizer::noteStats;
 ColorProfile Visualizer::colorProfile{};
 std::vector<Profile> Visualizer::profiles;
+std::vector<char*> Visualizer::profileNames;
+std::vector<char*> Visualizer::colorProfileNames;
+std::vector<char*> Visualizer::midiProfileNames;
 std::vector<char*> Visualizer::midiPorts;
 std::vector<Mapping> Visualizer::mappings;
 Window Visualizer::settingsWindow;
@@ -110,6 +115,9 @@ void Visualizer::Shutdown()
 	std::cout << "Cleaning Up Resources..." << std::endl;
 #endif
 
+	for (char* str : profileNames) { delete[] str; }
+	for (char* str : colorProfileNames) { delete[] str; }
+	for (char* str : midiProfileNames) { delete[] str; }
 	for (char* str : midiPorts) { delete[] str; }
 
 	UI::Shutdown();
@@ -247,19 +255,21 @@ bool Visualizer::InitializeWindows()
 
 bool Visualizer::InitializeCH()
 {
-	std::wstring cloneHeroFolder = GetCloneHeroFolder();
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-	LoadProfiles(cloneHeroFolder);
+	cloneHeroFolder = GetCloneHeroFolder();
+	LoadProfiles();
+	LoadColorProfiles();
+	LoadMidiProfiles();
+
 	if (settings.profileId != U32_MAX)
 	{
 		settings.dynamicThreshold = profiles[settings.profileId].dynamicThreshold;
 		settings.leftyFlip = profiles[settings.profileId].leftyFlip;
-		LoadColors(cloneHeroFolder + L"Custom\\Colors\\" +
-			converter.from_bytes(profiles[settings.profileId].colorProfile) +
-			L".ini");
+
+		if (!settings.colorProfileName.empty()) { SetColorProfile(profiles[settings.profileId].colorProfile); }
+		else { SetColorProfile(settings.colorProfileName); }
 	}
 
-	if (!LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\loopMIDI CH.yaml")) { return false; }
+	SetMidiProfile(settings.midiProfileName);
 
 	return true;
 }
@@ -439,6 +449,12 @@ bool Visualizer::LoadConfig()
 		case "portName"_Hash: {
 			settings.portName = value;
 		} break;
+		case "colorProfileName"_Hash: {
+			settings.colorProfileName = value;
+		} break;
+		case "midiProfileName"_Hash: {
+			settings.midiProfileName = value;
+		} break;
 		case "noteLayout"_Hash: {
 			U32 i = 0;
 			for (C8 c : value)
@@ -514,6 +530,8 @@ void Visualizer::SaveConfig()
 	output << "cymbalTextureName=" << settings.cymbalTextureName << '\n';
 	output << "kickTextureName=" << settings.kickTextureName << '\n';
 	output << "portName=" << settings.portName << '\n';
+	output << "colorProfileName=" << settings.colorProfileName << '\n';
+	output << "midiProfileName=" << settings.midiProfileName << '\n';
 	
 	output << "noteLayout=";
 	for (NoteInfo& info : noteInfos) { output << info.index; }
@@ -553,17 +571,17 @@ std::wstring Visualizer::GetCloneHeroFolder()
 #endif
 }
 
-void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
+void Visualizer::LoadProfiles()
 {
 #ifdef DV_DEBUG
 	std::cout << "Loading Profiles..." << std::endl;
 #endif
-	std::string data = Resources::ReadFile(cloneHeroPath + L"profiles.ini");
+	std::string data = Resources::ReadFile(cloneHeroFolder + L"profiles.ini");
 
 	if (data.empty())
 	{
 		std::cout << "Failed to open profiles.ini, using default profile" << std::endl;
-		profiles.push_back({ "Guest", "DefaultColors", 100, false });
+		profiles.push_back({ U32_MAX, "Guest", "DefaultColors", 100, false });
 		return;
 	}
 
@@ -571,6 +589,7 @@ void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 	U64 end = 0;
 	U64 start = 0;
 
+	U32 id = 0;
 	while ((start = data.find('[', i)) != std::string::npos)
 	{
 		Profile profile{};
@@ -598,14 +617,75 @@ void Visualizer::LoadProfiles(const std::wstring& cloneHeroPath)
 		end = data.find('\n', i);
 
 		profile.leftyFlip = data.substr(i, end - i) == "1";
+		profile.id = id;
 
 		profiles.push_back(profile);
+
+		char* name = new char[profile.name.size() + 1];
+		memcpy(name, profile.name.c_str(), profile.name.size() + 1);
+		profileNames.push_back(name);
 	}
 
 	if (settings.profileId == U32_MAX)
 	{
 		settings.profileId = 0;
 	}
+}
+
+void Visualizer::LoadColorProfiles()
+{
+	for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(cloneHeroFolder + L"Custom\\Colors\\"))
+	{
+		std::string path = entry.path().string();
+
+		std::string ext = path.substr(path.find_last_of('.') + 1);
+		I32 start = path.find_last_of('\\') + 1;
+		std::string file = path.substr(start, path.find_last_of('.') - start);
+
+		if (ext == "ini")
+		{
+			char* name = new char[file.size() + 1];
+			memcpy(name, file.c_str(), file.size() + 1);
+			colorProfileNames.push_back(name);
+		}
+	}
+}
+
+void Visualizer::LoadMidiProfiles()
+{
+	for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(cloneHeroFolder + L"MIDI Profiles\\"))
+	{
+		std::string path = entry.path().string();
+
+		std::string ext = path.substr(path.find_last_of('.') + 1);
+		I32 start = path.find_last_of('\\') + 1;
+		std::string file = path.substr(start, path.find_last_of('.') - start);
+
+		if (ext == "yaml")
+		{
+			char* name = new char[file.size() + 1];
+			memcpy(name, file.c_str(), file.size() + 1);
+			midiProfileNames.push_back(name);
+		}
+	}
+}
+
+void Visualizer::SetProfile(I32 profileId)
+{
+	settings.dynamicThreshold = profiles[profileId].dynamicThreshold;
+	settings.leftyFlip = profiles[profileId].leftyFlip;
+}
+
+void Visualizer::SetColorProfile(const std::string& name)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	LoadColors(cloneHeroFolder + L"Custom\\Colors\\" + converter.from_bytes(name) + L".ini");
+}
+
+void Visualizer::SetMidiProfile(const std::string& name)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\" + converter.from_bytes(name) + L".yaml");
 }
 
 void Visualizer::LoadColors(const std::wstring& path)
@@ -821,6 +901,22 @@ std::array<NoteInfo, 8>& Visualizer::GetNoteInfos()
 std::vector<char*>& Visualizer::GetPorts()
 {
 	return midiPorts;
+}
+
+std::vector<char*>& Visualizer::GetProfiles()
+{
+	return profileNames;
+}
+
+std::vector<char*>& Visualizer::GetColorProfiles()
+{
+
+	return colorProfileNames;
+}
+
+std::vector<char*>& Visualizer::GetMidiProfiles()
+{
+	return midiProfileNames;
 }
 
 void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
