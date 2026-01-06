@@ -7,8 +7,8 @@ This is a program to visualize midi input specifically for Clone Hero drums, WIP
 ### Windows
 
 1. Follow this tutorial for LoopMIDI and MIDIOX setup: <https://www.youtube.com/watch?v=RS9NtVNdHnE>
-2. Make sure the ports are named 'loopMIDI CH' and 'loopMIDI Visualizer'
-3. Run Clone Hero and set your Input Device to loopMIDI CH
+2. The default ports it looks for are 'loopMIDI CH' and 'loopMIDI Visualizer'
+3. Run Clone Hero and set your Input Device to loopMIDI CH, or whatever you named that port
 4. Go to your Documents/Clone Hero/MIDI Profiles and edit loopMIDI CH.yaml to match your existing mappings **OR** remap everything in game
 5. Download the latest release, run it, and enjoy
 
