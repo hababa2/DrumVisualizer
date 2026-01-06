@@ -76,6 +76,7 @@ struct Settings
 	I32 visualizerWindowWidth{ 350 };
 	I32 visualizerWindowHeight{ 800 };
 
+	std::string portName{ "loopMIDI Visualizer" };
 	U32 profileId{ U32_MAX };
 	U32 dynamicThreshold{ 100 };
 	bool leftyFlip{ false };
@@ -119,10 +120,11 @@ public:
 	static void ErrorCallback(I32 error, const C8* description);
 
 	static void SetScrollDirection(ScrollDirection direction);
+	static void LoadPort(const std::string& portName);
 	static Settings& GetSettings();
 	static std::array<Stats, 8>& GetStats();
 	static std::array<NoteInfo, 8>& GetNoteInfos();
-	static std::vector<std::string>& GetPorts();
+	static std::vector<char*>& GetPorts();
 
 private:
 	static void MainLoop();
@@ -146,7 +148,7 @@ private:
 	static std::array<Stats, 8> noteStats;
 	static ColorProfile colorProfile;
 	static std::vector<Profile> profiles;
-	static std::vector<std::string> midiPorts;
+	static std::vector<char*> midiPorts;
 	static std::vector<Mapping> mappings;
 	static Window settingsWindow;
 	static Window visualizerWindow;

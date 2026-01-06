@@ -11,6 +11,20 @@ Window* UI::visualizerWindow;
 ImGuiContext* UI::settingsContext;
 ImGuiContext* UI::visualizerContext;
 
+ImGuiWindowFlags UI::flags;
+Settings* UI::settings;
+std::array<Stats, 8>* UI::stats;
+std::array<NoteInfo, 8>* UI::noteInfos;
+const std::vector<char*>* UI::ports;
+
+const char* UI::directions[] = { "Up", "Down", "Left", "Right" };
+const std::vector<char*>* UI::textures;
+I32 UI::direction;
+I32 UI::tomId;
+I32 UI::cymbalId;
+I32 UI::kickId;
+I32 UI::portId;
+
 bool UI::Initialize(Window* settingsWindow_, Window* visualizerWindow_)
 {
 #ifdef DV_DEBUG
@@ -38,6 +52,29 @@ bool UI::Initialize(Window* settingsWindow_, Window* visualizerWindow_)
 	ImGuiIO& io = ImGui::GetIO();
 	io.IniFilename = nullptr;
 	io.LogFilename = nullptr;
+
+	flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+	settings = &Visualizer::GetSettings();
+	stats = &Visualizer::GetStats();
+	noteInfos = &Visualizer::GetNoteInfos();
+	ports = &Visualizer::GetPorts();
+
+	textures = &Resources::GetTextureNames();
+	direction = (I32)settings->scrollDirection;
+	tomId = settings->tomTexture->id;
+	cymbalId = settings->cymbalTexture->id;
+	kickId = settings->kickTexture->id;
+
+	I32 i = 0;
+	for (const std::string& port : *ports)
+	{
+		if (port == settings->portName)
+		{
+			portId = i;
+		}
+
+		++i;
+	}
 
 	return true;
 }
@@ -68,12 +105,6 @@ void UI::Update(Window* window)
 
 void UI::Render(Window* window)
 {
-	static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
-	static Settings& settings = Visualizer::GetSettings();
-	static std::array<Stats, 8>& stats = Visualizer::GetStats();
-	static std::array<NoteInfo, 8>& noteInfos = Visualizer::GetNoteInfos();
-	static std::vector<std::string>& ports = Visualizer::GetPorts();
-
 	if (window == settingsWindow)
 	{
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -82,20 +113,12 @@ void UI::Render(Window* window)
 
 		if (ImGui::Begin("Settings", NULL, flags))
 		{
-			static const char* directions[] = { "Up", "Down", "Left", "Right" };
-			static const std::vector<char*>& textures = Resources::GetTextureNames();
-			static I32 direction = (I32)settings.scrollDirection;
-			static I32 tomId = settings.tomTexture->id;
-			static I32 cymbalId = settings.cymbalTexture->id;
-			static I32 kickId = settings.kickTexture->id;
-			static I32 portId = settings.kickTexture->id;
-
 			ImGui::Text("Press F1 to toggle config mode to drag and resize visualizer window");
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Show Stats:");
 			ImGui::SameLine();
-			if (ImGui::Checkbox("##ShowStats", &settings.showStats))
+			if (ImGui::Checkbox("##ShowStats", &settings->showStats))
 			{
 				Visualizer::SetScrollDirection((ScrollDirection)direction);
 			}
@@ -103,7 +126,7 @@ void UI::Render(Window* window)
 			ImGui::SameLine();
 			if (ImGui::Button("Reset Stats"))
 			{
-				for (Stats& s : stats)
+				for (Stats& s : *stats)
 				{
 					s.hitCount = 0;
 					s.ghostCount = 0;
@@ -113,22 +136,22 @@ void UI::Render(Window* window)
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Show Dynamics:");
 			ImGui::SameLine();
-			ImGui::Checkbox("##ShowDynamics", &settings.showDynamics);
+			ImGui::Checkbox("##ShowDynamics", &settings->showDynamics);
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Scroll Speed:");
 			ImGui::SameLine();
-			ImGui::SliderFloat("##ScrollSpeed", &settings.scrollSpeed, 0.25f, 5.0f, "%.2f");
+			ImGui::SliderFloat("##ScrollSpeed", &settings->scrollSpeed, 0.25f, 5.0f, "%.2f");
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Note Width:");
 			ImGui::SameLine();
-			ImGui::SliderFloat("##NoteWidth", &settings.noteWidth, 0.01f, 0.125f, "%.3f");
+			ImGui::SliderFloat("##NoteWidth", &settings->noteWidth, 0.01f, 0.125f, "%.3f");
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Note Height:");
 			ImGui::SameLine();
-			ImGui::SliderFloat("##NoteHeight", &settings.noteHeight, 0.01f, 0.125f, "%.3f");
+			ImGui::SliderFloat("##NoteHeight", &settings->noteHeight, 0.01f, 0.125f, "%.3f");
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Scroll Direction:");
@@ -141,37 +164,37 @@ void UI::Render(Window* window)
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Tom Texture:");
 			ImGui::SameLine();
-			if (ImGui::Combo("##TomTexture", &tomId, textures.data(), (I32)textures.size()))
+			if (ImGui::Combo("##TomTexture", &tomId, textures->data(), (I32)textures->size()))
 			{
-				settings.tomTextureName = textures[tomId];
-				settings.tomTexture = Resources::GetTexture(settings.tomTextureName);
+				settings->tomTextureName = textures->at(tomId);
+				settings->tomTexture = Resources::GetTexture(settings->tomTextureName);
 			}
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Cymbal Texture:");
 			ImGui::SameLine();
-			if (ImGui::Combo("##CymbalTexture", &cymbalId, textures.data(), (I32)textures.size()))
+			if (ImGui::Combo("##CymbalTexture", &cymbalId, textures->data(), (I32)textures->size()))
 			{
-				settings.cymbalTextureName = textures[cymbalId];
-				settings.cymbalTexture = Resources::GetTexture(settings.cymbalTextureName);
+				settings->cymbalTextureName = textures->at(cymbalId);
+				settings->cymbalTexture = Resources::GetTexture(settings->cymbalTextureName);
 			}
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Kick Texture:");
 			ImGui::SameLine();
-			if (ImGui::Combo("##KickTexture", &kickId, textures.data(), (I32)textures.size()))
+			if (ImGui::Combo("##KickTexture", &kickId, textures->data(), (I32)textures->size()))
 			{
-				settings.kickTextureName = textures[kickId];
-				settings.kickTexture = Resources::GetTexture(settings.kickTextureName);
+				settings->kickTextureName = textures->at(kickId);
+				settings->kickTexture = Resources::GetTexture(settings->kickTextureName);
 			}
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Midi Ports:");
 			ImGui::SameLine();
-			if (ImGui::Combo("##MidiPorts", &kickId, textures.data(), (I32)textures.size()))
+			if (ImGui::Combo("##MidiPorts", &portId, ports->data(), (I32)ports->size()))
 			{
-				settings.kickTextureName = textures[kickId];
-				settings.kickTexture = Resources::GetTexture(settings.kickTextureName);
+				settings->portName = ports->at(portId);
+				Visualizer::LoadPort(settings->portName);
 			}
 
 			const F32 size = 70.0f;
@@ -179,19 +202,19 @@ void UI::Render(Window* window)
 
 			ImGui::Text("Rearrange Layout:");
 
-			for (U32 i = 0; i < noteInfos.size(); ++i)
+			for (U32 i = 0; i < noteInfos->size(); ++i)
 			{
 				ImGui::PushID(i);
 				if(i > 0) { ImGui::SameLine(0, spacing); }
 
-				ImGui::Button(noteInfos[i].name.c_str(), ImVec2(size, size));
+				ImGui::Button(noteInfos->at(i).name.c_str(), ImVec2(size, size));
 
 				if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceNoDisableHover))
 				{
 					ImGui::SetDragDropPayload("DND_SQUARE", &i, sizeof(I32));
 
-					ImGui::Text("Moving %s", noteInfos[i].name.c_str());
-					ImGui::Button(noteInfos[i].name.c_str(), ImVec2(size, size));
+					ImGui::Text("Moving %s", noteInfos->at(i).name.c_str());
+					ImGui::Button(noteInfos->at(i).name.c_str(), ImVec2(size, size));
 
 					ImGui::EndDragDropSource();
 				}
@@ -205,15 +228,15 @@ void UI::Render(Window* window)
 
 						if (source < target)
 						{
-							std::rotate(noteInfos.begin() + source,
-								noteInfos.begin() + source + 1,
-								noteInfos.begin() + target + 1);
+							std::rotate(noteInfos->begin() + source,
+								noteInfos->begin() + source + 1,
+								noteInfos->begin() + target + 1);
 						}
 						else if (source > target)
 						{
-							std::rotate(noteInfos.begin() + target,
-								noteInfos.begin() + source,
-								noteInfos.begin() + source + 1);
+							std::rotate(noteInfos->begin() + target,
+								noteInfos->begin() + source,
+								noteInfos->begin() + source + 1);
 						}
 					}
 					ImGui::EndDragDropTarget();
@@ -225,14 +248,14 @@ void UI::Render(Window* window)
 
 		ImGui::End();
 	}
-	else if (settings.showStats)
+	else if (settings->showStats)
 	{
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImVec2 size = viewport->Size;
 		ImVec2 pos = viewport->Pos;
 		bool horizontal = true;
 
-		switch (settings.scrollDirection)
+		switch (settings->scrollDirection)
 		{
 		case ScrollDirection::Up: {
 			pos.y = size.y - 50.0f;
@@ -266,12 +289,12 @@ void UI::Render(Window* window)
 					F32 rowHeight = ImGui::GetContentRegionAvail().y;
 					F32 lineSpacing = ImGui::GetStyle().ItemSpacing.y;
 					F32 textLineHeight = ImGui::GetTextLineHeight();
-					F32 blockHeight = settings.showDynamics ? (textLineHeight * 2) + lineSpacing : textLineHeight;
+					F32 blockHeight = settings->showDynamics ? (textLineHeight * 2) + lineSpacing : textLineHeight;
 
-					for (NoteInfo& note : noteInfos)
+					for (NoteInfo& note : *noteInfos)
 					{
-						Stats& s = stats[note.index];
-						SetupColumn(s.hitCount, s.ghostCount, rowHeight, blockHeight, settings.showDynamics);
+						Stats& s = stats->at(note.index);
+						SetupColumn(s.hitCount, s.ghostCount, rowHeight, blockHeight, settings->showDynamics);
 					}
 
 					ImGui::EndTable();
@@ -285,12 +308,12 @@ void UI::Render(Window* window)
 					F32 rowHeight = availableHeight / 8.0f;
 					F32 lineSpacing = ImGui::GetStyle().ItemSpacing.y;
 					F32 textLineHeight = ImGui::GetTextLineHeight();
-					F32 blockHeight = settings.showDynamics ? (textLineHeight * 2) + lineSpacing : textLineHeight;
+					F32 blockHeight = settings->showDynamics ? (textLineHeight * 2) + lineSpacing : textLineHeight;
 
-					for (I32 i = noteInfos.size() - 1; i >= 0; --i)
+					for (I32 i = noteInfos->size() - 1; i >= 0; --i)
 					{
-						Stats& s = stats[noteInfos[i].index];
-						SetupRow(s.hitCount, s.ghostCount, rowHeight, blockHeight, settings.showDynamics);
+						Stats& s = stats->at(noteInfos->at(i).index);
+						SetupRow(s.hitCount, s.ghostCount, rowHeight, blockHeight, settings->showDynamics);
 					}
 
 					ImGui::EndTable();

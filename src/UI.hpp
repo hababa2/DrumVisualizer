@@ -6,6 +6,9 @@
 #include "Buffer.hpp"
 #include "Window.hpp"
 
+struct Settings;
+struct Stats;
+struct NoteInfo;
 struct ImGuiContext;
 
 class UI
@@ -25,6 +28,20 @@ private:
 
 	static ImGuiContext* settingsContext;
 	static ImGuiContext* visualizerContext;
+
+	static I32 flags;
+	static Settings* settings;
+	static std::array<Stats, 8>* stats;
+	static std::array<NoteInfo, 8>* noteInfos;
+	static const std::vector<char*>* ports;
+
+	static const char* directions[];
+	static const std::vector<char*>* textures;
+	static I32 direction;
+	static I32 tomId;
+	static I32 cymbalId;
+	static I32 kickId;
+	static I32 portId;
 
 	STATIC_CLASS(UI)
 };

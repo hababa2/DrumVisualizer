@@ -24,7 +24,7 @@ std::array<NoteInfo, 8> Visualizer::noteInfos;
 std::array<Stats, 8> Visualizer::noteStats;
 ColorProfile Visualizer::colorProfile{};
 std::vector<Profile> Visualizer::profiles;
-std::vector<std::string> Visualizer::midiPorts;
+std::vector<char*> Visualizer::midiPorts;
 std::vector<Mapping> Visualizer::mappings;
 Window Visualizer::settingsWindow;
 Window Visualizer::visualizerWindow;
@@ -109,6 +109,9 @@ void Visualizer::Shutdown()
 #ifdef DV_DEBUG
 	std::cout << "Cleaning Up Resources..." << std::endl;
 #endif
+
+	for (char* str : midiPorts) { delete[] str; }
+
 	UI::Shutdown();
 	Renderer::Shutdown();
 	Resources::Shutdown();
@@ -285,9 +288,11 @@ bool Visualizer::InitializeMidi()
 #ifdef DV_DEBUG
 		std::cout << "  Port " << i << ": " << midiName << std::endl;
 #endif
-		midiPorts.push_back(midiName);
+		char* str = new char[midiName.length() + 1];
+		memcpy(str, midiName.c_str(), midiName.length() + 1);
+		midiPorts.push_back(str);
 
-		if (midiName == "loopMIDI Visualizer")
+		if (midiName == settings.portName)
 		{
 			midiIn->openPort(i, midiName);
 			foundPortName = midiName;
@@ -297,8 +302,7 @@ bool Visualizer::InitializeMidi()
 
 	if (!found)
 	{
-		std::cout << "Failed To Find 'loopMIDI Visualizer' Port, shutting down" << std::endl;
-		return false;
+		std::cout << "Failed To Find '" << settings.portName << "' Port!" << std::endl;
 	}
 
 #ifdef DV_DEBUG
@@ -314,6 +318,32 @@ bool Visualizer::InitializeMidi()
 #endif
 
 	return true;
+}
+
+void Visualizer::LoadPort(const std::string& portName)
+{
+	if (midiIn->isPortOpen()) { midiIn->closePort(); }
+
+	for (U32 i = 0; i < midiPorts.size(); ++i)
+	{
+		std::string midiName = midiIn->getPortName(i);
+		if (midiName.size() >= 2)
+		{
+			midiName = midiName.substr(0, midiName.size() - 2);
+		}
+
+		if (midiName == portName)
+		{
+			try
+			{
+				midiIn->openPort(i, midiName);
+			}
+			catch (...)
+			{
+				std::cout << "Failed To Open '" << portName << "' Port!" << std::endl;
+			}
+		}
+	}
 }
 
 bool Visualizer::LoadConfig()
@@ -406,6 +436,9 @@ bool Visualizer::LoadConfig()
 		case "kickTextureName"_Hash: {
 			settings.kickTextureName = value;
 		} break;
+		case "portName"_Hash: {
+			settings.portName = value;
+		} break;
 		case "noteLayout"_Hash: {
 			U32 i = 0;
 			for (C8 c : value)
@@ -480,6 +513,7 @@ void Visualizer::SaveConfig()
 	output << "tomTextureName=" << settings.tomTextureName << '\n';
 	output << "cymbalTextureName=" << settings.cymbalTextureName << '\n';
 	output << "kickTextureName=" << settings.kickTextureName << '\n';
+	output << "portName=" << settings.portName << '\n';
 	
 	output << "noteLayout=";
 	for (NoteInfo& info : noteInfos) { output << info.index; }
@@ -784,7 +818,7 @@ std::array<NoteInfo, 8>& Visualizer::GetNoteInfos()
 	return noteInfos;
 }
 
-std::vector<std::string>& Visualizer::GetPorts()
+std::vector<char*>& Visualizer::GetPorts()
 {
 	return midiPorts;
 }
