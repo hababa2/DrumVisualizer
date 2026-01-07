@@ -72,7 +72,7 @@ struct Settings
 	I32 settingWindowWidth{ 630 };
 	I32 settingWindowHeight{ 800 };
 
-	I32 visualizerWindowX{ 700 };
+	I32 visualizerWindowX{ 730 };
 	I32 visualizerWindowY{ 100 };
 	I32 visualizerWindowWidth{ 350 };
 	I32 visualizerWindowHeight{ 800 };

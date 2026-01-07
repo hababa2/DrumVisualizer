@@ -22,7 +22,16 @@
 
 Settings Visualizer::settings{};
 std::wstring Visualizer::cloneHeroFolder;
-std::array<NoteInfo, 8> Visualizer::noteInfos;
+std::array<NoteInfo, 8> Visualizer::noteInfos = {
+	NoteInfo{ "Snare", 0 },
+	NoteInfo{ "Kick", 1 },
+	NoteInfo{ "Cymbal 1", 2 },
+	NoteInfo{ "Tom 1", 3 },
+	NoteInfo{ "Cymbal 2", 4 },
+	NoteInfo{ "Tom 2", 5 },
+	NoteInfo{ "Cymbal 3", 6 },
+	NoteInfo{ "Tom 3", 7 }
+};
 std::array<Stats, 8> Visualizer::noteStats;
 ColorProfile Visualizer::colorProfile{};
 std::vector<Profile> Visualizer::profiles;
@@ -265,8 +274,9 @@ bool Visualizer::InitializeCH()
 		settings.dynamicThreshold = profiles[settings.profileId].dynamicThreshold;
 		settings.leftyFlip = profiles[settings.profileId].leftyFlip;
 
-		if (!settings.colorProfileName.empty()) { SetColorProfile(profiles[settings.profileId].colorProfile); }
-		else { SetColorProfile(settings.colorProfileName); }
+		if (settings.colorProfileName.empty()) { settings.colorProfileName = profiles[settings.profileId].colorProfile; }
+
+		SetColorProfile(settings.colorProfileName);
 	}
 
 	SetMidiProfile(settings.midiProfileName);
@@ -493,17 +503,14 @@ bool Visualizer::LoadConfig()
 		if (i == 0) { break; }
 	}
 
-	if (noteInfos[0].name.empty())
-	{
-		noteInfos[0] = { "Snare", 0 };
-		noteInfos[1] = { "Kick", 1 };
-		noteInfos[2] = { "Cymbal 1", 2 };
-		noteInfos[3] = { "Tom 1", 3 };
-		noteInfos[4] = { "Cymbal 2", 4 };
-		noteInfos[5] = { "Tom 2", 5 };
-		noteInfos[6] = { "Cymbal 3", 6 };
-		noteInfos[7] = { "Tom 3", 7 };
-	}
+	settings.settingWindowX = max(settings.settingWindowX, 0);
+	settings.settingWindowY = max(settings.settingWindowY, 0);
+	settings.settingWindowWidth = max(settings.settingWindowWidth, 100);
+	settings.settingWindowHeight = max(settings.settingWindowHeight, 100);
+	settings.visualizerWindowX = max(settings.visualizerWindowX, 0);
+	settings.visualizerWindowY = max(settings.visualizerWindowY, 0);
+	settings.visualizerWindowWidth = max(settings.visualizerWindowWidth, 100);
+	settings.visualizerWindowHeight = max(settings.visualizerWindowHeight, 100);
 
 	return true;
 }
@@ -696,7 +703,11 @@ void Visualizer::SetColorProfile(const std::string& name)
 void Visualizer::SetMidiProfile(const std::string& name)
 {
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-	LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\" + converter.from_bytes(name) + L".yaml");
+	if (!LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\" + converter.from_bytes(name) + L".yaml"))
+	{
+		settings.midiProfileName = midiProfileNames[0];
+		LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\" + converter.from_bytes(midiProfileNames[0]) + L".yaml");
+	}
 }
 
 void Visualizer::LoadColors(const std::wstring& path)
