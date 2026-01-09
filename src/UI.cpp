@@ -372,7 +372,7 @@ void UI::Render(Window* window)
 					F32 textLineHeight = ImGui::GetTextLineHeight();
 					F32 blockHeight = settings->showDynamics ? (textLineHeight * 2) + lineSpacing : textLineHeight;
 
-					for (U64 i = noteInfos->size() - 1; i >= 0; --i)
+					for (I64 i = noteInfos->size() - 1; i >= 0; --i)
 					{
 						Stats& s = stats->at(noteInfos->at(i).index);
 						SetupRow(s.hitCount, s.ghostCount, rowHeight, blockHeight, settings->showDynamics);
