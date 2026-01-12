@@ -31,6 +31,7 @@ struct Window
 	void SetTransparent(bool b);
 	void SetInteractable(bool b);
 	void SetFloating(bool b);
+	void SetClearColor(const Vector4& color);
 
 	const WindowConfig& Config() const;
 

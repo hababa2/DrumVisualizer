@@ -66,6 +66,11 @@ void Window::SetFloating(bool b)
 	glfwSetWindowAttrib(window, GLFW_FLOATING, b);
 }
 
+void Window::SetClearColor(const Vector4& color)
+{
+	config.clearColor = color;
+}
+
 const WindowConfig& Window::Config() const
 {
 	return config;

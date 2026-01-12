@@ -275,6 +275,11 @@ void UI::Render(Window* window)
 				Visualizer::SetMidiProfile(midiProfiles->at(midiProfileId));
 			}
 
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Background Color:");
+			ImGui::SameLine();
+			ImGui::ColorEdit4("##BackgroundColor", (F32*)&settings->backgroundColor, ImGuiColorEditFlags_NoInputs);
+
 			const F32 size = 70.0f;
 			const F32 spacing = 8.0f;
 

@@ -103,6 +103,7 @@ struct Settings
 	std::string tomTextureName{ "square" };
 	std::string cymbalTextureName{ "triangle" };
 	std::string kickTextureName{ "square" };
+	Vector4 backgroundColor{ 0.0f, 0.0f, 0.0f, 0.0f };
 
 	Texture* tomTexture{ nullptr };
 	Texture* cymbalTexture{ nullptr };

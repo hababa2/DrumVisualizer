@@ -188,6 +188,8 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 	colorsBuffer.Flush(colors.data(), static_cast<U32>(colors.capacity() * sizeof(Vector3)));
 	textureIdsBuffer.Flush(textureIds.data(), static_cast<U32>(textureIds.capacity() * sizeof(U32)));
 
+	visualizerWindow.SetClearColor(settings.backgroundColor);
+
 	settingsWindow.Update();
 
 	UI::Update(&settingsWindow);

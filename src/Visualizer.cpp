@@ -474,6 +474,19 @@ bool Visualizer::LoadConfig()
 		case "kickTextureName"_Hash: {
 			settings.kickTextureName = value;
 		} break;
+		case "backgroundColor"_Hash: {
+			U64 vStart = 0;
+			U64 vEnd = value.find(',', vStart);
+			settings.backgroundColor.x = SafeStof(value.substr(vStart, vEnd - vStart), settings.backgroundColor.x);
+			vStart = vEnd + 1;
+			vEnd = value.find(',', vStart);
+			settings.backgroundColor.y = SafeStof(value.substr(vStart, vEnd - vStart), settings.backgroundColor.y);
+			vStart = vEnd + 1;
+			vEnd = value.find(',', vStart);
+			settings.backgroundColor.z = SafeStof(value.substr(vStart, vEnd - vStart), settings.backgroundColor.z);
+			vStart = vEnd + 1;
+			settings.backgroundColor.w = SafeStof(value.substr(vStart), settings.backgroundColor.w);
+		} break;
 		case "portName"_Hash: {
 			settings.portName = value;
 		} break;
@@ -556,6 +569,9 @@ void Visualizer::SaveConfig()
 	output << "tomTextureName=" << settings.tomTextureName << '\n';
 	output << "cymbalTextureName=" << settings.cymbalTextureName << '\n';
 	output << "kickTextureName=" << settings.kickTextureName << '\n';
+	output << "backgroundColor=" << settings.backgroundColor.x << ',' <<
+		settings.backgroundColor.y << ',' << settings.backgroundColor.z <<
+		',' << settings.backgroundColor.w << '\n';
 	output << "portName=" << settings.portName << '\n';
 	output << "colorProfileName=" << settings.colorProfileName << '\n';
 	output << "midiProfileName=" << settings.midiProfileName << '\n';
