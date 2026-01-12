@@ -28,11 +28,17 @@ U32 Renderer::shaderProgram;
 Buffer Renderer::positionBuffer;
 Buffer Renderer::texCoordsBuffer;
 Buffer Renderer::offsetsBuffer;
+Buffer Renderer::scalesBuffer;
+Buffer Renderer::texCoordOffsetsBuffer;
+Buffer Renderer::texCoordScalesBuffer;
 Buffer Renderer::colorsBuffer;
 Buffer Renderer::textureIdsBuffer;
 Texture* Renderer::defaultTexture;
 U32 Renderer::nextIndex = 0;
-std::vector<Vector2> Renderer::offsets;
+std::vector<Vector3> Renderer::offsets;
+std::vector<Vector2> Renderer::scales;
+std::vector<Vector2> Renderer::texCoordOffsets;
+std::vector<Vector2> Renderer::texCoordScales;
 std::vector<Vector3> Renderer::colors;
 std::vector<U32> Renderer::textureIds;
 
@@ -53,9 +59,12 @@ bool Renderer::Initialize()
 
 	positionBuffer.Create(0, DataType::VECTOR2, positions, static_cast<U32>(CountOf(positions) * sizeof(Vector2)), false);
 	texCoordsBuffer.Create(1, DataType::VECTOR2, texCoords, static_cast<U32>(CountOf(texCoords) * sizeof(Vector2)), false);
-	offsetsBuffer.Create(2, DataType::VECTOR2, offsets.data(), static_cast<U32>(offsets.capacity() * sizeof(Vector2)), true);
-	colorsBuffer.Create(3, DataType::VECTOR3, colors.data(), static_cast<U32>(colors.capacity() * sizeof(Vector3)), true);
-	textureIdsBuffer.Create(4, DataType::UINT, textureIds.data(), static_cast<U32>(textureIds.capacity() * sizeof(U32)), true);
+	offsetsBuffer.Create(2, DataType::VECTOR3, offsets.data(), static_cast<U32>(offsets.capacity() * sizeof(Vector3)), true);
+	scalesBuffer.Create(3, DataType::VECTOR2, scales.data(), static_cast<U32>(scales.capacity() * sizeof(Vector2)), true);
+	texCoordOffsetsBuffer.Create(4, DataType::VECTOR2, texCoordOffsets.data(), static_cast<U32>(texCoordOffsets.capacity() * sizeof(Vector2)), true);
+	texCoordScalesBuffer.Create(5, DataType::VECTOR2, texCoordScales.data(), static_cast<U32>(texCoordScales.capacity() * sizeof(Vector2)), true);
+	colorsBuffer.Create(6, DataType::VECTOR3, colors.data(), static_cast<U32>(colors.capacity() * sizeof(Vector3)), true);
+	textureIdsBuffer.Create(7, DataType::UINT, textureIds.data(), static_cast<U32>(textureIds.capacity() * sizeof(U32)), true);
 
 	glCreateBuffers(1, &textureBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, textureBuffer);
@@ -110,7 +119,10 @@ bool Renderer::Initialize()
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
-	offsets.resize(MaxNotes, { -100.0f, -100.0f });
+	offsets.resize(MaxNotes, { -100.0f, -100.0f, 0.0f });
+	scales.resize(MaxNotes, { 1.0f, 1.0f });
+	texCoordOffsets.resize(MaxNotes, { 0.0f, 0.0f });
+	texCoordScales.resize(MaxNotes, { 1.0f, 1.0f });
 	colors.resize(MaxNotes, { 0.0f, 0.0f, 0.0f });
 	textureIds.resize(MaxNotes, 0);
 
@@ -122,6 +134,9 @@ void Renderer::Shutdown()
 	positionBuffer.Destroy();
 	texCoordsBuffer.Destroy();
 	offsetsBuffer.Destroy();
+	scalesBuffer.Destroy();
+	texCoordOffsetsBuffer.Destroy();
+	texCoordScalesBuffer.Destroy();
 	colorsBuffer.Destroy();
 	textureIdsBuffer.Destroy();
 
@@ -161,12 +176,15 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 
 	positionBuffer.Flush(positions, static_cast<U32>(CountOf(positions) * sizeof(Vector2)));
 
-	for (Vector2& offset : offsets)
+	for (Vector3& offset : offsets)
 	{
 		offset += velocity;
 	}
 
-	offsetsBuffer.Flush(offsets.data(), static_cast<U32>(offsets.capacity() * sizeof(Vector2)));
+	offsetsBuffer.Flush(offsets.data(), static_cast<U32>(offsets.capacity() * sizeof(Vector3)));
+	scalesBuffer.Flush(scales.data(), static_cast<U32>(scales.capacity() * sizeof(Vector2)));
+	texCoordOffsetsBuffer.Flush(texCoordOffsets.data(), static_cast<U32>(texCoordOffsets.capacity() * sizeof(Vector2)));
+	texCoordScalesBuffer.Flush(texCoordScales.data(), static_cast<U32>(texCoordScales.capacity() * sizeof(Vector2)));
 	colorsBuffer.Flush(colors.data(), static_cast<U32>(colors.capacity() * sizeof(Vector3)));
 	textureIdsBuffer.Flush(textureIds.data(), static_cast<U32>(textureIds.capacity() * sizeof(U32)));
 
@@ -182,7 +200,7 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 	glUseProgram(shaderProgram);
 	glBindVertexArray(vao);
 	glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, static_cast<I32>(offsets.size()));
-	
+
 	glBindVertexArray(0);
 
 	UI::Render(&visualizerWindow);
@@ -191,20 +209,107 @@ void Renderer::Update(Vector2 velocity, Window& settingsWindow, Window& visualiz
 	visualizerWindow.Render();
 }
 
-void Renderer::SpawnNote(const Vector2& position, const Vector3& color, Texture* texture)
+void Renderer::SpawnNote(Stats& stats, const Vector3& color, Texture* texture)
 {
 	if (texture == nullptr) { texture = defaultTexture; }
 
-	offsets[nextIndex] = position;
+	Vector2 scale = { 1.0f, 1.0f };
+	Vector2 texCoordOffset = { 0.0f, 0.0f };
+	Vector2 texCoordScale = { 1.0f, 1.0f };
+	Settings& settings = Visualizer::GetSettings();
+
+	if (settings.noteSeparationMode != NoteSeparationMode::None && stats.lastIndex != U32_MAX)
+	{
+		Vector3 prevOffset = offsets[stats.lastIndex];
+
+		F32 allowedDistance = settings.noteHeight * 2 + settings.noteGap;
+
+		switch (settings.scrollDirection)
+		{
+		case ScrollDirection::Up: {
+			F32 distance = prevOffset.y - stats.spawn.y;
+
+			if (distance < allowedDistance)
+			{
+				F32 adjustment = allowedDistance - distance;
+				F32 percent = adjustment / (settings.noteHeight * 2.0f);
+
+				offsets[stats.lastIndex].y += adjustment / 2.0f;
+				scales[stats.lastIndex].y -= percent;
+				if (settings.noteSeparationMode == NoteSeparationMode::Cutoff)
+				{
+					texCoordOffsets[stats.lastIndex].y += percent;
+					texCoordScales[stats.lastIndex].y -= percent;
+				}
+			}
+		} break;
+		case ScrollDirection::Down: {
+			F32 distance = stats.spawn.y - prevOffset.y;
+
+			if (distance < allowedDistance)
+			{
+				F32 adjustment = allowedDistance - distance;
+				F32 percent = adjustment / (settings.noteHeight * 2.0f);
+
+				offsets[stats.lastIndex].y -= adjustment / 2.0f;
+				scales[stats.lastIndex].y -= percent;
+				if (settings.noteSeparationMode == NoteSeparationMode::Cutoff)
+				{
+					texCoordScales[stats.lastIndex].y -= percent;
+				}
+			}
+		} break;
+		case ScrollDirection::Left: {
+			F32 distance = stats.spawn.x - prevOffset.x;
+
+			if (distance < allowedDistance)
+			{
+				F32 adjustment = allowedDistance - distance;
+				F32 percent = adjustment / (settings.noteHeight * 2.0f);
+
+				offsets[stats.lastIndex].x -= adjustment / 2.0f;
+				scales[stats.lastIndex].x -= percent;
+				if (settings.noteSeparationMode == NoteSeparationMode::Cutoff)
+				{
+					texCoordScales[stats.lastIndex].x -= percent;
+				}
+			}
+		} break;
+		case ScrollDirection::Right: {
+			F32 distance = prevOffset.x - stats.spawn.x;
+
+			if (distance < allowedDistance)
+			{
+				F32 adjustment = allowedDistance - distance;
+				F32 percent = adjustment / (settings.noteHeight * 2.0f);
+
+				offsets[stats.lastIndex].x += adjustment / 2.0f;
+				scales[stats.lastIndex].x -= percent;
+				if (settings.noteSeparationMode == NoteSeparationMode::Cutoff)
+				{
+					texCoordOffsets[stats.lastIndex].x += percent;
+					texCoordScales[stats.lastIndex].x -= percent;
+				}
+			}
+		} break;
+		}
+	}
+
+	offsets[nextIndex] = stats.spawn;
+	scales[nextIndex] = scale;
 	colors[nextIndex] = color;
+	texCoordOffsets[nextIndex] = texCoordOffset;
+	texCoordScales[nextIndex] = texCoordScale;
 	textureIds[nextIndex] = texture->id;
+
+	stats.lastIndex = nextIndex;
 
 	++nextIndex %= MaxNotes;
 }
 
 void Renderer::ClearNotes()
 {
-	for (Vector2& offset : offsets)
+	for (Vector3& offset : offsets)
 	{
 		offset = { -100.0f, -100.0f };
 	}

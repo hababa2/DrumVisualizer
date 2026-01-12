@@ -23,6 +23,13 @@ enum class ScrollDirection
 	Right
 };
 
+enum class NoteSeparationMode
+{
+	None,
+	Cutoff,
+	Squish
+};
+
 enum class NoteType
 {
 	Snare,
@@ -90,6 +97,9 @@ struct Settings
 	ScrollDirection scrollDirection{ ScrollDirection::Down };
 	F32 noteWidth{ 0.1f };
 	F32 noteHeight{ 0.025f };
+	F32 noteGap{ 0.005f };
+	NoteSeparationMode noteSeparationMode{ NoteSeparationMode::Cutoff };
+
 	std::string tomTextureName{ "square" };
 	std::string cymbalTextureName{ "triangle" };
 	std::string kickTextureName{ "square" };
@@ -107,7 +117,8 @@ struct NoteInfo
 
 struct Stats
 {
-	Vector2 spawn{ 0.0f, 0.0f };
+	Vector3 spawn{ 0.0f, 0.0f, 0.0f };
+	U32 lastIndex{ U32_MAX };
 	U32 hitCount{ 0 };
 	U32 ghostCount{ 0 };
 };

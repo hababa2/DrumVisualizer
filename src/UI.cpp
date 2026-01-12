@@ -22,7 +22,9 @@ const std::vector<char*>* UI::midiProfiles;
 const std::vector<char*>* UI::textures;
 
 const char* UI::directions[] = { "Up", "Down", "Left", "Right" };
+const char* UI::separationModes[] = { "None", "Cutoff", "Squish" };
 I32 UI::direction;
+I32 UI::separationMode;
 I32 UI::tomId;
 I32 UI::cymbalId;
 I32 UI::kickId;
@@ -70,6 +72,7 @@ bool UI::Initialize(Window* settingsWindow_, Window* visualizerWindow_)
 
 	textures = &Resources::GetTextureNames();
 	direction = (I32)settings->scrollDirection;
+	separationMode = (I32)settings->noteSeparationMode;
 	tomId = settings->tomTexture->id;
 	cymbalId = settings->cymbalTexture->id;
 	kickId = settings->kickTexture->id;
@@ -187,6 +190,19 @@ void UI::Render(Window* window)
 			ImGui::Text("Note Height:");
 			ImGui::SameLine();
 			ImGui::SliderFloat("##NoteHeight", &settings->noteHeight, 0.01f, 0.125f, "%.3f");
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Note Gap:");
+			ImGui::SameLine();
+			ImGui::SliderFloat("##NoteGap", &settings->noteGap, 0.0f, 0.01f, "%.3f");
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Note Separation Mode:");
+			ImGui::SameLine();
+			if (ImGui::Combo("##NoteSeparationMode", &separationMode, separationModes, IM_COUNTOF(separationModes)))
+			{
+				settings->noteSeparationMode = (NoteSeparationMode)separationMode;
+			}
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Scroll Direction:");

@@ -8,6 +8,8 @@
 
 #include <vector>
 
+struct Stats;
+
 class Renderer
 {
 public:
@@ -15,7 +17,7 @@ public:
 	static void Shutdown();
 
 	static void Update(Vector2 velocity, Window& settingsWindow, Window& visualizerWindow);
-	static void SpawnNote(const Vector2& position, const Vector3& color, Texture* texture);
+	static void SpawnNote(Stats& stats, const Vector3& color, Texture* texture);
 	static void ClearNotes();
 
 private:
@@ -25,13 +27,19 @@ private:
 	static Buffer positionBuffer;
 	static Buffer texCoordsBuffer;
 	static Buffer offsetsBuffer;
+	static Buffer scalesBuffer;
+	static Buffer texCoordOffsetsBuffer;
+	static Buffer texCoordScalesBuffer;
 	static Buffer colorsBuffer;
 	static Buffer textureIdsBuffer;
 	static Texture* defaultTexture;
 
 	static constexpr U32 MaxNotes = 200;
 	static U32 nextIndex;
-	static std::vector<Vector2> offsets;
+	static std::vector<Vector3> offsets;
+	static std::vector<Vector2> scales;
+	static std::vector<Vector2> texCoordOffsets;
+	static std::vector<Vector2> texCoordScales;
 	static std::vector<Vector3> colors;
 	static std::vector<U32> textureIds;
 

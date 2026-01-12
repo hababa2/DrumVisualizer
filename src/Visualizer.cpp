@@ -458,6 +458,13 @@ bool Visualizer::LoadConfig()
 		case "noteHeight"_Hash: {
 			settings.noteHeight = SafeStof(value, settings.noteHeight);
 		} break;
+		case "noteGap"_Hash: {
+			settings.noteGap = SafeStof(value, settings.noteGap);
+		} break;
+		case "noteSeparationMode"_Hash: {
+			settings.noteSeparationMode =
+				(NoteSeparationMode)SafeStoi(value, (I32)settings.noteSeparationMode);
+		} break;
 		case "tomTextureName"_Hash: {
 			settings.tomTextureName = value;
 		} break;
@@ -544,6 +551,8 @@ void Visualizer::SaveConfig()
 	output << "scrollDirection=" << static_cast<U32>(settings.scrollDirection) << '\n';
 	output << "noteWidth=" << settings.noteWidth << '\n';
 	output << "noteHeight=" << settings.noteHeight << '\n';
+	output << "noteGap=" << settings.noteGap << '\n';
+	output << "noteSeparationMode=" << static_cast<U32>(settings.noteSeparationMode) << '\n';
 	output << "tomTextureName=" << settings.tomTextureName << '\n';
 	output << "cymbalTextureName=" << settings.cymbalTextureName << '\n';
 	output << "kickTextureName=" << settings.kickTextureName << '\n';
@@ -870,7 +879,7 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 		if (settings.showStats) { spawnPosition = (height - 100.0f) / height - settings.noteHeight; }
 		for (Stats& s : noteStats)
 		{
-			s.spawn = { layoutPosition, spawnPosition };
+			s.spawn = { layoutPosition, spawnPosition, 0.0f };
 			layoutPosition += layoutIncrement;
 		}
 	} break;
@@ -878,7 +887,7 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 		if (settings.showStats) { spawnPosition = (width - 100.0f) / width - settings.noteHeight; }
 		for (Stats& s : noteStats)
 		{
-			s.spawn = { -spawnPosition, layoutPosition };
+			s.spawn = { -spawnPosition, layoutPosition, 0.0f };
 			layoutPosition += layoutIncrement;
 		}
 	} break;
@@ -886,7 +895,7 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 		if (settings.showStats) { spawnPosition = (height - 100.0f) / height - settings.noteHeight; }
 		for (Stats& s : noteStats)
 		{
-			s.spawn = { layoutPosition, -spawnPosition };
+			s.spawn = { layoutPosition, -spawnPosition, 0.0f };
 			layoutPosition += layoutIncrement;
 		}
 	} break;
@@ -894,7 +903,7 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 		if (settings.showStats) { spawnPosition = (width - 100.0f) / width - settings.noteHeight; }
 		for (Stats& s : noteStats)
 		{
-			s.spawn = { spawnPosition, layoutPosition };
+			s.spawn = { spawnPosition, layoutPosition, 0.0f };
 			layoutPosition += layoutIncrement;
 		}
 	} break;
@@ -980,49 +989,49 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
 					{
 					case NoteType::Snare: {
 						Stats& stats = noteStats[0];
-						Renderer::SpawnNote(noteStats[noteInfos[0].index].spawn, colorProfile.snareColor * dynamicMod, settings.tomTexture);
+						Renderer::SpawnNote(noteStats[noteInfos[0].index], colorProfile.snareColor * dynamicMod, settings.tomTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Kick: {
 						Stats& stats = noteStats[1];
-						Renderer::SpawnNote(noteStats[noteInfos[1].index].spawn, colorProfile.kickColor * dynamicMod, settings.kickTexture);
+						Renderer::SpawnNote(noteStats[noteInfos[1].index], colorProfile.kickColor * dynamicMod, settings.kickTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Cymbal1: {
 						Stats& stats = noteStats[2];
-						Renderer::SpawnNote(noteStats[noteInfos[2].index].spawn, colorProfile.cymbal1Color * dynamicMod, settings.cymbalTexture);
+						Renderer::SpawnNote(noteStats[noteInfos[2].index], colorProfile.cymbal1Color * dynamicMod, settings.cymbalTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Tom1: {
 						Stats& stats = noteStats[3];
-						Renderer::SpawnNote(noteStats[noteInfos[3].index].spawn, colorProfile.tom1Color * dynamicMod, settings.tomTexture);
+						Renderer::SpawnNote(noteStats[noteInfos[3].index], colorProfile.tom1Color * dynamicMod, settings.tomTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Cymbal2: {
 						Stats& stats = noteStats[4];
-						Renderer::SpawnNote(noteStats[noteInfos[4].index].spawn, colorProfile.cymbal2Color * dynamicMod, settings.cymbalTexture);
+						Renderer::SpawnNote(noteStats[noteInfos[4].index], colorProfile.cymbal2Color * dynamicMod, settings.cymbalTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Tom2: {
 						Stats& stats = noteStats[5];
-						Renderer::SpawnNote(noteStats[noteInfos[5].index].spawn, colorProfile.tom2Color * dynamicMod, settings.tomTexture);
+						Renderer::SpawnNote(noteStats[noteInfos[5].index], colorProfile.tom2Color * dynamicMod, settings.tomTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Cymbal3: {
 						Stats& stats = noteStats[6];
-						Renderer::SpawnNote(noteStats[noteInfos[6].index].spawn, colorProfile.cymbal3Color * dynamicMod, settings.cymbalTexture);
+						Renderer::SpawnNote(noteStats[noteInfos[6].index], colorProfile.cymbal3Color * dynamicMod, settings.cymbalTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Tom3: {
 						Stats& stats = noteStats[7];
-						Renderer::SpawnNote(noteStats[noteInfos[7].index].spawn, colorProfile.tom3Color * dynamicMod, settings.tomTexture);
+						Renderer::SpawnNote(noteStats[noteInfos[7].index], colorProfile.tom3Color * dynamicMod, settings.tomTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;

@@ -41,7 +41,9 @@ private:
 	static const std::vector<char*>* textures;
 
 	static const char* directions[];
+	static const char* separationModes[];
 	static I32 direction;
+	static I32 separationMode;
 	static I32 tomId;
 	static I32 cymbalId;
 	static I32 kickId;

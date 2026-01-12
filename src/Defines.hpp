@@ -175,6 +175,7 @@ struct Vector3
 	F32 x, y, z;
 
 	Vector3 operator*(F32 f) const { return { x * f, y * f, z * f }; }
+	Vector3& operator+=(const Vector2& v) { x += v.x; y += v.y; return *this; }
 };
 
 struct Vector4
