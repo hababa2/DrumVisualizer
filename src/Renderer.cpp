@@ -229,6 +229,7 @@ void Renderer::SpawnNote(Stats& stats, const Vector3& color, Texture* texture)
 		switch (settings.scrollDirection)
 		{
 		case ScrollDirection::Up: {
+			scale.x = stats.scale;
 			F32 distance = prevOffset.y - stats.spawn.y;
 
 			if (distance < allowedDistance)
@@ -246,6 +247,7 @@ void Renderer::SpawnNote(Stats& stats, const Vector3& color, Texture* texture)
 			}
 		} break;
 		case ScrollDirection::Down: {
+			scale.x = stats.scale;
 			F32 distance = stats.spawn.y - prevOffset.y;
 
 			if (distance < allowedDistance)
@@ -262,6 +264,7 @@ void Renderer::SpawnNote(Stats& stats, const Vector3& color, Texture* texture)
 			}
 		} break;
 		case ScrollDirection::Left: {
+			scale.y = stats.scale;
 			F32 distance = stats.spawn.x - prevOffset.x;
 
 			if (distance < allowedDistance)
@@ -278,6 +281,7 @@ void Renderer::SpawnNote(Stats& stats, const Vector3& color, Texture* texture)
 			}
 		} break;
 		case ScrollDirection::Right: {
+			scale.y = stats.scale;
 			F32 distance = prevOffset.x - stats.spawn.x;
 
 			if (distance < allowedDistance)
@@ -294,6 +298,16 @@ void Renderer::SpawnNote(Stats& stats, const Vector3& color, Texture* texture)
 				}
 			}
 		} break;
+		}
+	}
+	else
+	{
+		switch (settings.scrollDirection)
+		{
+		case ScrollDirection::Up: { scale.x = stats.scale; } break;
+		case ScrollDirection::Down: { scale.x = stats.scale; } break;
+		case ScrollDirection::Left: { scale.y = stats.scale; } break;
+		case ScrollDirection::Right: { scale.y = stats.scale; } break;
 		}
 	}
 

@@ -445,6 +445,9 @@ bool Visualizer::LoadConfig()
 		case "showStats"_Hash: {
 			settings.showStats = SafeStoi(value, settings.showStats);
 		} break;
+		case "longKicks"_Hash: {
+			settings.longKicks = SafeStoi(value, settings.longKicks);
+		} break;
 		case "scrollSpeed"_Hash: {
 			settings.scrollSpeed = SafeStof(value, settings.scrollSpeed);
 		} break;
@@ -560,6 +563,7 @@ void Visualizer::SaveConfig()
 	output << "leftyFlip=" << settings.leftyFlip << '\n';
 	output << "showDynamics=" << settings.showDynamics << '\n';
 	output << "showStats=" << settings.showStats << '\n';
+	output << "longKicks=" << settings.longKicks << '\n';
 	output << "scrollSpeed=" << settings.scrollSpeed << '\n';
 	output << "scrollDirection=" << static_cast<U32>(settings.scrollDirection) << '\n';
 	output << "noteWidth=" << settings.noteWidth << '\n';
@@ -730,8 +734,14 @@ void Visualizer::SetMidiProfile(const std::string& name)
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 	if (!LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\" + converter.from_bytes(name) + L".yaml"))
 	{
-		settings.midiProfileName = midiProfileNames[0];
-		LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\" + converter.from_bytes(midiProfileNames[0]) + L".yaml");
+		for (char* profile : midiProfileNames)
+		{
+			if (LoadMidiProfile(cloneHeroFolder + L"MIDI Profiles\\" + converter.from_bytes(profile) + L".yaml"))
+			{
+				settings.midiProfileName = profile;
+				break;
+			}
+		}
 	}
 }
 
@@ -827,7 +837,7 @@ bool Visualizer::LoadMidiProfile(const std::wstring& path)
 
 	if (data.empty())
 	{
-		std::wcout << "Failed to open MIDI profile " << path << ", shutting down" << std::endl;
+		std::wcout << "Failed to open MIDI profile " << path << std::endl;
 		return false;
 	}
 
@@ -850,11 +860,12 @@ bool Visualizer::LoadMidiProfile(const std::wstring& path)
 	ParseMappings(data, NoteType::Cymbal2, cymbal2, cymbal3);
 	ParseMappings(data, NoteType::Cymbal3, cymbal3, start);
 
+	std::wcout << "Succesfully opened MIDI profile " << path << std::endl;
+
 	return true;
 }
 
-void Visualizer::ParseMappings(const std::string& data, NoteType type,
-	U64 start, U64 end)
+void Visualizer::ParseMappings(const std::string& data, NoteType type, U64 start, U64 end)
 {
 	U64 i = start;
 	U64 lineEnd = 0;
@@ -886,45 +897,74 @@ void Visualizer::SetScrollDirection(ScrollDirection direction)
 	I32 width, height;
 	glfwGetFramebufferSize(visualizerWindow, &width, &height);
 	F32 spawnPosition = 1.0f - settings.noteHeight;
+
 	F32 layoutPosition = -0.875f;
 	F32 layoutIncrement = 0.25f;
+	F32 x = 0.0f;
+	F32 y = 0.0f;
+	F32 kickX = 0.0f;
+	F32 kickY = 0.0f;
+
+	if (settings.longKicks)
+	{
+		layoutPosition = -0.85714285714f;
+		layoutIncrement = 0.28571428571f;
+	}
 
 	switch (settings.scrollDirection)
 	{
 	case ScrollDirection::Down: {
-		if (settings.showStats) { spawnPosition = (height - 100.0f) / height - settings.noteHeight; }
-		for (Stats& s : noteStats)
-		{
-			s.spawn = { layoutPosition, spawnPosition, 0.0f };
-			layoutPosition += layoutIncrement;
-		}
+		if (settings.showStats) { spawnPosition = (height - UI::statsSize * 2.0f) / height - settings.noteHeight; }
+
+		x = layoutPosition;
+		y = spawnPosition;
+		kickX = 0.0f;
+		kickY = spawnPosition;
 	} break;
 	case ScrollDirection::Right: {
-		if (settings.showStats) { spawnPosition = (width - 100.0f) / width - settings.noteHeight; }
-		for (Stats& s : noteStats)
-		{
-			s.spawn = { -spawnPosition, layoutPosition, 0.0f };
-			layoutPosition += layoutIncrement;
-		}
+		if (settings.showStats) { spawnPosition = (width - UI::statsSize * 2.0f) / width - settings.noteHeight; }
+
+		x = -spawnPosition;
+		y = layoutPosition;
+		kickX = -spawnPosition;
+		kickY = 0.0f;
 	} break;
 	case ScrollDirection::Up: {
-		if (settings.showStats) { spawnPosition = (height - 100.0f) / height - settings.noteHeight; }
-		for (Stats& s : noteStats)
-		{
-			s.spawn = { layoutPosition, -spawnPosition, 0.0f };
-			layoutPosition += layoutIncrement;
-		}
+		if (settings.showStats) { spawnPosition = (height - UI::statsSize * 2.0f) / height - settings.noteHeight; }
+
+		x = layoutPosition;
+		y = -spawnPosition;
+		kickX = 0.0f;
+		kickY = -spawnPosition;
 	} break;
 	case ScrollDirection::Left: {
-		if (settings.showStats) { spawnPosition = (width - 100.0f) / width - settings.noteHeight; }
-		for (Stats& s : noteStats)
-		{
-			s.spawn = { spawnPosition, layoutPosition, 0.0f };
-			layoutPosition += layoutIncrement;
-		}
+		if (settings.showStats) { spawnPosition = (width - UI::statsSize * 2.0f) / width - settings.noteHeight; }
+
+		x = spawnPosition;
+		y = layoutPosition;
+		kickX = spawnPosition;
+		kickY = 0.0f;
 	} break;
 	default:
 		break;
+	}
+
+	for (NoteInfo& info : noteInfos)
+	{
+		Stats& stats = noteStats[info.index];
+
+		if (settings.longKicks && info.name == "Kick")
+		{
+			stats.scale = 100.0f;
+			stats.spawn = { kickX, kickY, 0.5f };
+		}
+		else
+		{
+			stats.scale = 1.0f;
+			stats.spawn = { x, y, 0.0f };
+			if (settings.scrollDirection == ScrollDirection::Left || settings.scrollDirection == ScrollDirection::Right) { y += layoutIncrement; }
+			if (settings.scrollDirection == ScrollDirection::Up || settings.scrollDirection == ScrollDirection::Down) { x += layoutIncrement; }
+		}
 	}
 
 	Renderer::ClearNotes();
@@ -966,8 +1006,7 @@ std::vector<char*>& Visualizer::GetMidiProfiles()
 	return midiProfileNames;
 }
 
-void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
-	void* userData)
+void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message, void* userData)
 {
 #ifndef DV_PLATFORM_WINDOWS
 	midiOut->sendMessage(message);
@@ -992,8 +1031,7 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
 		{
 			if (message->at(1) == mapping.midiValue)
 			{
-				if (message->at(2) >= mapping.velocityThreshold &&
-					(lastInput - mapping.lastHit) >= mapping.overhitThreshold)
+				if (message->at(2) >= mapping.velocityThreshold && (lastInput - mapping.lastHit) >= mapping.overhitThreshold)
 				{
 					mapping.lastHit = lastInput;
 
@@ -1005,49 +1043,49 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
 					{
 					case NoteType::Snare: {
 						Stats& stats = noteStats[0];
-						Renderer::SpawnNote(noteStats[noteInfos[0].index], colorProfile.snareColor * dynamicMod, settings.tomTexture);
+						Renderer::SpawnNote(stats, colorProfile.snareColor * dynamicMod, settings.tomTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Kick: {
 						Stats& stats = noteStats[1];
-						Renderer::SpawnNote(noteStats[noteInfos[1].index], colorProfile.kickColor * dynamicMod, settings.kickTexture);
+						Renderer::SpawnNote(stats, colorProfile.kickColor * dynamicMod, settings.kickTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Cymbal1: {
 						Stats& stats = noteStats[2];
-						Renderer::SpawnNote(noteStats[noteInfos[2].index], colorProfile.cymbal1Color * dynamicMod, settings.cymbalTexture);
+						Renderer::SpawnNote(stats, colorProfile.cymbal1Color * dynamicMod, settings.cymbalTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Tom1: {
 						Stats& stats = noteStats[3];
-						Renderer::SpawnNote(noteStats[noteInfos[3].index], colorProfile.tom1Color * dynamicMod, settings.tomTexture);
+						Renderer::SpawnNote(stats, colorProfile.tom1Color * dynamicMod, settings.tomTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Cymbal2: {
 						Stats& stats = noteStats[4];
-						Renderer::SpawnNote(noteStats[noteInfos[4].index], colorProfile.cymbal2Color * dynamicMod, settings.cymbalTexture);
+						Renderer::SpawnNote(stats, colorProfile.cymbal2Color * dynamicMod, settings.cymbalTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Tom2: {
 						Stats& stats = noteStats[5];
-						Renderer::SpawnNote(noteStats[noteInfos[5].index], colorProfile.tom2Color * dynamicMod, settings.tomTexture);
+						Renderer::SpawnNote(stats, colorProfile.tom2Color * dynamicMod, settings.tomTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Cymbal3: {
 						Stats& stats = noteStats[6];
-						Renderer::SpawnNote(noteStats[noteInfos[6].index], colorProfile.cymbal3Color * dynamicMod, settings.cymbalTexture);
+						Renderer::SpawnNote(stats, colorProfile.cymbal3Color * dynamicMod, settings.cymbalTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
 					case NoteType::Tom3: {
 						Stats& stats = noteStats[7];
-						Renderer::SpawnNote(noteStats[noteInfos[7].index], colorProfile.tom3Color * dynamicMod, settings.tomTexture);
+						Renderer::SpawnNote(stats, colorProfile.tom3Color * dynamicMod, settings.tomTexture);
 						++stats.hitCount;
 						if (ghost) { ++stats.ghostCount; }
 					} break;
@@ -1060,8 +1098,7 @@ void Visualizer::MidiCallback(F64 deltatime, std::vector<U8>* message,
 	}
 }
 
-void Visualizer::KeyCallback(GLFWwindow* window, I32 key, I32 scancode,
-	I32 action, I32 mods)
+void Visualizer::KeyCallback(GLFWwindow* window, I32 key, I32 scancode, I32 action, I32 mods)
 {
 #ifdef DV_DEBUG
 	std::cout << "Key: " << key << ", Action: " << action << ", Mods: " << mods << std::endl;

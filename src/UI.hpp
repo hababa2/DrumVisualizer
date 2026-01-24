@@ -20,9 +20,12 @@ public:
 	static void Update(Window* window);
 	static void Render(Window* window);
 
+	static F32 statsSize;
+
 private:
 	static void SetupColumn(U32 value1, U32 value2, F32 rowHeight, F32 blockHeight, bool showDynamics);
 	static void SetupRow(U32 value1, U32 value2, F32 height, F32 blockHeight, bool showDynamics);
+	static void SetupKick(U32 value1, U32 value2, bool showDynamics);
 
 	static Window* settingsWindow;
 	static Window* visualizerWindow;

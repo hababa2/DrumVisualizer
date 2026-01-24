@@ -92,6 +92,7 @@ struct Settings
 	bool leftyFlip{ false };
 	bool showDynamics{ true };
 	bool showStats{ true };
+	bool longKicks{ false };
 
 	F32 scrollSpeed{ 1.0f };
 	ScrollDirection scrollDirection{ ScrollDirection::Down };
@@ -119,6 +120,7 @@ struct NoteInfo
 struct Stats
 {
 	Vector3 spawn{ 0.0f, 0.0f, 0.0f };
+	F32 scale{ 1.0f };
 	U32 lastIndex{ U32_MAX };
 	U32 hitCount{ 0 };
 	U32 ghostCount{ 0 };

@@ -12,6 +12,7 @@ ImGuiContext* UI::settingsContext;
 ImGuiContext* UI::visualizerContext;
 
 ImGuiWindowFlags UI::flags;
+F32 UI::statsSize = 60.0f;
 Settings* UI::settings;
 std::array<Stats, 8>* UI::stats;
 std::array<NoteInfo, 8>* UI::noteInfos;
@@ -172,6 +173,14 @@ void UI::Render(Window* window)
 			}
 
 			ImGui::AlignTextToFramePadding();
+			ImGui::Text("Long Kicks:");
+			ImGui::SameLine();
+			if (ImGui::Checkbox("##LongKicks", &settings->longKicks))
+			{
+				Visualizer::SetScrollDirection((ScrollDirection)direction);
+			}
+
+			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Show Dynamics:");
 			ImGui::SameLine();
 			ImGui::Checkbox("##ShowDynamics", &settings->showDynamics);
@@ -321,6 +330,8 @@ void UI::Render(Window* window)
 								noteInfos->begin() + source,
 								noteInfos->begin() + source + 1);
 						}
+
+						Visualizer::SetScrollDirection((ScrollDirection)direction);
 					}
 					ImGui::EndDragDropTarget();
 				}
@@ -341,21 +352,21 @@ void UI::Render(Window* window)
 		switch (settings->scrollDirection)
 		{
 		case ScrollDirection::Up: {
-			pos.y = size.y - 50.0f;
-			size.y = 50.0f;
+			pos.y = size.y - statsSize;
+			size.y = statsSize;
 			horizontal = true;
 		} break;
 		case ScrollDirection::Down: {
-			size.y = 50.0f;
+			size.y = statsSize;
 			horizontal = true;
 		} break;
 		case ScrollDirection::Left: {
-			pos.x = size.x - 50.0f;
-			size.x = 50.0f;
+			pos.x = size.x - statsSize;
+			size.x = statsSize;
 			horizontal = false;
 		} break;
 		case ScrollDirection::Right: {
-			size.x = 50.0f;
+			size.x = statsSize;
 			horizontal = false;
 		} break;
 		}
@@ -363,11 +374,27 @@ void UI::Render(Window* window)
 		ImGui::SetNextWindowPos(pos);
 		ImGui::SetNextWindowSize(size);
 
-		if (ImGui::Begin("Settings", NULL, flags))
+		I32 count = 8;
+
+		if (ImGui::Begin("Stats", NULL, flags))
 		{
+			if (settings->longKicks)
+			{
+				count = 7;
+				for (NoteInfo& note : *noteInfos)
+				{
+					if (note.name == "Kick")
+					{
+						Stats& s = stats->at(note.index);
+						SetupKick(s.hitCount, s.ghostCount, settings->showDynamics);
+						break;
+					}
+				}
+			}
+
 			if (horizontal)
 			{
-				if (ImGui::BeginTable("##StatsTable", 8))
+				if (ImGui::BeginTable("##StatsTable", count))
 				{
 					F32 rowHeight = ImGui::GetContentRegionAvail().y;
 					F32 lineSpacing = ImGui::GetStyle().ItemSpacing.y;
@@ -376,6 +403,7 @@ void UI::Render(Window* window)
 
 					for (NoteInfo& note : *noteInfos)
 					{
+						if (settings->longKicks && note.name == "Kick") { continue; }
 						Stats& s = stats->at(note.index);
 						SetupColumn(s.hitCount, s.ghostCount, rowHeight, blockHeight, settings->showDynamics);
 					}
@@ -388,13 +416,14 @@ void UI::Render(Window* window)
 				if (ImGui::BeginTable("##StatsTable", 1))
 				{
 					F32 availableHeight = ImGui::GetContentRegionAvail().y;
-					F32 rowHeight = availableHeight / 8.0f;
+					F32 rowHeight = availableHeight / count;
 					F32 lineSpacing = ImGui::GetStyle().ItemSpacing.y;
 					F32 textLineHeight = ImGui::GetTextLineHeight();
 					F32 blockHeight = settings->showDynamics ? (textLineHeight * 2) + lineSpacing : textLineHeight;
 
 					for (I64 i = noteInfos->size() - 1; i >= 0; --i)
 					{
+						if (settings->longKicks && noteInfos->at(i).name == "Kick") { continue; }
 						Stats& s = stats->at(noteInfos->at(i).index);
 						SetupRow(s.hitCount, s.ghostCount, rowHeight, blockHeight, settings->showDynamics);
 					}
@@ -448,6 +477,25 @@ void UI::SetupRow(U32 value1, U32 value2, F32 rowHeight, F32 blockHeight, bool s
 	if (showDynamics)
 	{
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (ImGui::GetColumnWidth() - ImGui::CalcTextSize(text2.c_str()).x) * 0.5f);
+		ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), text2.c_str());
+	}
+}
+
+void UI::SetupKick(U32 value1, U32 value2, bool showDynamics)
+{
+	std::string text1 = std::to_string(value1);
+	std::string text2 = std::to_string(value2);
+
+	F32 width = ImGui::GetContentRegionAvail().x * 0.66f;
+
+	ImGui::SetCursorPosY(ImGui::CalcTextSize(text1.c_str()).y * 0.5f);
+	ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (width - ImGui::CalcTextSize(text1.c_str()).x) * 0.5f);
+	ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), text1.c_str());
+
+	if (showDynamics)
+	{
+		ImGui::SameLine();
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (width - ImGui::CalcTextSize(text2.c_str()).x) * 0.5f);
 		ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), text2.c_str());
 	}
 }
